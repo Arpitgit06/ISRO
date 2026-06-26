@@ -1,0 +1,53 @@
+# docker-compose.yml  —  TESSERACTZ
+# Usage:  docker compose up --build
+# GPU:    add "runtime: nvidia" under backend service and ensure nvidia-container-toolkit is installed
+
+version: "3.9"
+
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tesseractz-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist downloaded model checkpoints between rebuilds
+      - ./backend/checkpoints:/app/checkpoints
+      # Mount torch hub cache
+      - torch-hub-cache:/root/.cache/torch
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+    # Uncomment for GPU support:
+    # runtime: nvidia
+    # environment:
+    #   - NVIDIA_VISIBLE_DEVICES=all
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s   # allow time for model downloads on first run
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tesseractz-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  torch-hub-cache:
+
+networks:
+  default:
+    name: tesseractz-net

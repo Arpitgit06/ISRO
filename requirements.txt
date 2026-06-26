@@ -1,0 +1,32 @@
+# TESSERACTZ — backend/requirements.txt
+# Pin major versions; minor bumps are safe.
+
+# ── Core framework ────────────────────────────────────────────────
+fastapi==0.111.*
+uvicorn[standard]==0.29.*
+python-multipart==0.0.*
+pydantic==2.*
+
+# ── Computer vision ───────────────────────────────────────────────
+opencv-python-headless==4.9.*
+Pillow==10.*
+scikit-image==0.23.*
+
+# ── Deep learning ─────────────────────────────────────────────────
+torch>=2.2.0
+torchvision>=0.17.0
+timm>=0.9.16
+
+# ── Super-resolution ──────────────────────────────────────────────
+basicsr>=1.4.2
+realesrgan>=0.3.0
+
+# ── Detection ─────────────────────────────────────────────────────
+ultralytics>=8.2.0
+
+# ── Metrics ───────────────────────────────────────────────────────
+lpips>=0.1.4
+
+# ── Colorization hub dep (torch.hub.load uses git) ───────────────
+# richzhang/colorization is loaded dynamically — no pip package needed.
+# skimage is already covered by scikit-image above.
