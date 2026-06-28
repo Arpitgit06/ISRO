@@ -57,23 +57,42 @@ cd tesseractz
 ### 2. Install Dependencies
 
 **Automated (Recommended on Windows):**
+Run the interactive script:
 ```batch
 install.bat
 ```
+This script will prompt you to select your hardware configuration to optimize the PyTorch installation:
+- **NVIDIA GPU (CUDA 12.1)**
+- **AMD GPU (DirectML)**
+- **Apple Silicon (macOS setup instruction)**
+- **CPU Only**
 
 **Manual:**
 ```bash
-# Backend
+# 1. Create and activate a virtual environment
 python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# Linux/macOS:
+# On Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+# On Windows (Command Prompt):
+.venv\Scripts\activate.bat
+# On Linux/macOS:
 source .venv/bin/activate
 
-pip install --upgrade pip
+# 2. Upgrade pip
+python -m pip install --upgrade pip
+
+# 3. Install PyTorch matching your hardware:
+# For NVIDIA CUDA:
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# For AMD DirectML (Windows):
+pip install torch torchvision && pip install torch-directml
+# For CPU-only:
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# 4. Install remaining backend requirements
 pip install -r requirements.txt
 
-# Frontend
+# 5. Install frontend dependencies
 npm install
 ```
 
@@ -100,6 +119,17 @@ npm start
 | **Frontend**  | http://localhost:3000          |
 | **Backend**   | http://localhost:8000          |
 | **API Docs**  | http://localhost:8000/docs     |
+
+---
+
+## 🎮 UI Staged Processing & Monitoring
+
+To optimize resource tracking and prevent computational spikes, TESSERACTZ implements a staged processing flow:
+
+1. **Interactive File Selection/Drop**: Drag and drop or browse to select an IR image (.tif, .png, .jpg, etc.).
+2. **Pre-Flight Metadata Card**: The UI displays a details card (file name, size, type) without triggering heavy neural network models immediately.
+3. **Dedicated Action Button**: Click **RUN PROCESSING** to run the complete ML pipeline. This helps isolate baseline resource usage from model processing workload.
+4. **Dynamic Device Switching**: A dropdown menu in the upper-right corner of the Dashboard header displays the active backend device (e.g. CPU, NVIDIA CUDA, AMD DirectML). You can dynamically switch the execution hardware on the fly without restarting the application.
 
 ---
 
@@ -228,18 +258,21 @@ install.bat
 ### `ModuleNotFoundError: No module named 'schemas'`
 Run `main.py` from the project root directory (`d:\ISRO\`), not from a subdirectory.
 
-### GPU not detected
+### GPU not detected / Changing Execution Hardware
+TESSERACTZ will automatically attempt to locate your GPU at startup (e.g., CUDA or DirectML). If it falls back to CPU, check your PyTorch installation in the active virtual environment (`.venv`):
+
 ```bash
-# NVIDIA CUDA (Windows / Linux)
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+# For NVIDIA CUDA support (Windows / Linux)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
-# AMD Windows (DirectML)
-pip install -U torch-directml
+# For AMD DirectML support (Windows)
+pip install torch torchvision && pip install torch-directml
 
-# AMD Linux (ROCm)
+# For AMD Linux (ROCm)
 # Follow the official PyTorch ROCm install instructions at https://pytorch.org
 ```
-The app falls back to CPU mode automatically — inference will be slower but functional.
+
+*Note: You can switch execution devices dynamically using the dropdown menu in the frontend Dashboard header.*
 
 ### Port already in use
 ```batch

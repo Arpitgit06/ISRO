@@ -61,10 +61,50 @@ if exist ".venv" (
 
 :: --- Install Python Dependencies ---
 echo.
-echo [4/6] Installing Python dependencies...
-echo   This may take several minutes (PyTorch, OpenCV, etc.)...
+echo [4/6] Select your hardware configuration to optimize PyTorch installation:
+echo       [1] NVIDIA GPU (CUDA)
+echo       [2] AMD GPU (DirectML)
+echo       [3] Apple Silicon (MPS - instruction only, for macOS)
+echo       [4] CPU Only (No GPU acceleration)
+echo.
+set /p GPU_CHOICE="Enter selection [1, 2, 3, or 4]: "
+
 call .venv\Scripts\activate.bat
-pip install --upgrade pip
+echo.
+echo   Upgrading pip...
+python -m pip install --upgrade pip
+
+if "%GPU_CHOICE%"=="1" (
+    echo.
+    echo   Installing PyTorch with NVIDIA CUDA support...
+    pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+) else if "%GPU_CHOICE%"=="2" (
+    echo.
+    echo   Installing PyTorch with AMD DirectML support...
+    pip install torch torchvision
+    pip install torch-directml
+) else if "%GPU_CHOICE%"=="3" (
+    echo.
+    echo   [INFO] Apple Silicon MPS requires running on macOS.
+    echo   Windows batch scripts cannot run on macOS.
+    echo   To install on Apple Silicon manually:
+    echo     1. Create and activate venv: python -m venv .venv and source .venv/bin/activate
+    echo     2. Install requirements: pip install -r requirements.txt
+    echo.
+    echo   We will install the default CPU PyTorch package for Windows in this venv.
+    pip install torch torchvision
+) else if "%GPU_CHOICE%"=="4" (
+    echo.
+    echo   Installing CPU-only PyTorch...
+    pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+) else (
+    echo.
+    echo   [WARNING] Invalid choice. Installing default CPU PyTorch...
+    pip install torch torchvision
+)
+
+echo.
+echo   Installing remaining dependencies from requirements.txt...
 pip install -r requirements.txt
 if %ERRORLEVEL% NEQ 0 (
     echo   [WARNING] Some Python packages may have failed to install.

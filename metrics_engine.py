@@ -42,13 +42,21 @@ def _to_rgb3(img: np.ndarray) -> np.ndarray:
 
 # ─── PSNR ────────────────────────────────────────────────────────────────────
 
-def compute_psnr(ref: np.ndarray, target: np.ndarray) -> float:
+def compute_psnr(ref: np.ndarray, target: np.ndarray, max_dim: int = 1024) -> float:
     """
     Peak Signal-to-Noise Ratio (dB).
     Higher is better.  Typical range for compressed imagery: 25–45 dB.
     """
     ref    = _to_rgb3(ref)
     target = _to_rgb3(_match_shape(ref, target))
+    
+    h, w = ref.shape[:2]
+    if max(h, w) > max_dim:
+        scale = max_dim / max(h, w)
+        new_w, new_h = int(w * scale), int(h * scale)
+        ref = cv2.resize(ref, (new_w, new_h), interpolation=cv2.INTER_AREA)
+        target = cv2.resize(target, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
     mse = np.mean((ref.astype(np.float64) - target.astype(np.float64)) ** 2)
     if mse < 1e-10:
         return 100.0
@@ -57,13 +65,21 @@ def compute_psnr(ref: np.ndarray, target: np.ndarray) -> float:
 
 # ─── SSIM ────────────────────────────────────────────────────────────────────
 
-def compute_ssim(ref: np.ndarray, target: np.ndarray) -> float:
+def compute_ssim(ref: np.ndarray, target: np.ndarray, max_dim: int = 1024) -> float:
     """
     Structural Similarity Index (0–1).
     Higher is better.  Uses scikit-image; falls back to manual windowed SSIM.
     """
     ref    = _to_rgb3(ref)
     target = _to_rgb3(_match_shape(ref, target))
+
+    h, w = ref.shape[:2]
+    if max(h, w) > max_dim:
+        scale = max_dim / max(h, w)
+        new_w, new_h = int(w * scale), int(h * scale)
+        ref = cv2.resize(ref, (new_w, new_h), interpolation=cv2.INTER_AREA)
+        target = cv2.resize(target, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
     try:
         from skimage.metrics import structural_similarity
         return round(float(
@@ -100,15 +116,16 @@ def compute_lpips(ref: np.ndarray, target: np.ndarray) -> float:
 
     try:
         import lpips
+        from inference_engine import DEVICE
 
         if _lpips_fn is None:
-            _lpips_fn = lpips.LPIPS(net="alex", verbose=False)
+            _lpips_fn = lpips.LPIPS(net="alex", verbose=False).to(DEVICE)
 
         def _t(img: np.ndarray) -> torch.Tensor:
             img_rs = cv2.resize(img, (256, 256))
             return (
                 torch.from_numpy(img_rs).float().permute(2, 0, 1).unsqueeze(0) / 127.5 - 1.0
-            )
+            ).to(DEVICE)
 
         with torch.no_grad():
             score = _lpips_fn(_t(ref), _t(target))
@@ -189,3 +206,29 @@ def run_all_metrics(
         "ssim_colorized":  compute_ssim(gray_rgb, colorized),
         "lpips_colorized": compute_lpips(gray_rgb, colorized),
     }
+
+
+def update_lpips_device(device: str) -> None:
+    """Migrate the cached LPIPS function model to the target device."""
+    global _lpips_fn
+    if _lpips_fn is not None:
+        try:
+            _lpips_fn = _lpips_fn.to(device)
+            logger.info(f"LPIPS function migrated to {device}")
+        except Exception as e:
+            logger.warning(f"Could not migrate LPIPS function to device {device}: {e}")
+
+
+def warm_up_lpips() -> None:
+    """Pre-load and warm up the LPIPS model on the active device."""
+    global _lpips_fn
+    try:
+        import lpips
+        from inference_engine import DEVICE
+        if _lpips_fn is None:
+            logger.info("Pre-loading LPIPS (AlexNet) model...")
+            _lpips_fn = lpips.LPIPS(net="alex", verbose=False).to(DEVICE)
+            logger.info("LPIPS model pre-loaded successfully.")
+    except Exception as e:
+        logger.warning(f"Could not pre-load LPIPS model: {e}")
+

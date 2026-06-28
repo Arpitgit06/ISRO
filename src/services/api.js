@@ -60,3 +60,37 @@ export async function processImage(file, onProgress) {
     xhr.send(formData);
   });
 }
+
+/**
+ * Fetch available device list and current active device.
+ */
+export async function fetchDevices() {
+  try {
+    const res = await fetch(`${API_BASE}/api/devices`);
+    if (!res.ok) throw new Error(`Fetch devices failed: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Devices fetch unavailable:', err.message);
+    return { devices: [], current_device: 'cpu' };
+  }
+}
+
+/**
+ * Change the active execution device in the backend.
+ * @param {string} deviceId - 'cpu', 'cuda', 'dml', or 'mps'
+ */
+export async function changeDevice(deviceId) {
+  const res = await fetch(`${API_BASE}/api/device`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ device: deviceId }),
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.detail || `Device change failed: ${res.status}`);
+  }
+  return await res.json();
+}
+

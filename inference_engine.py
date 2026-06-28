@@ -33,10 +33,118 @@ import torch
 import torch.nn.functional as F
 import timm
 from PIL import Image
+import sys
+
+# Patch torchvision.transforms.functional_tensor for compatibility with basicsr/realesrgan
+try:
+    import torchvision.transforms.functional_tensor
+except ImportError:
+    try:
+        import torchvision.transforms.functional as T_func
+        sys.modules["torchvision.transforms.functional_tensor"] = T_func
+    except ImportError:
+        pass
 
 logger = logging.getLogger(__name__)
 
 # ─── Global constants ─────────────────────────────────────────────────────────
+
+def detect_physical_gpus() -> list[str]:
+    """
+    Detect physical GPU brands (NVIDIA, AMD, APPLE) present on the system.
+    """
+    import subprocess
+    import shutil
+    import platform
+    
+    gpus = []
+    system = platform.system()
+    
+    if system == "Windows":
+        # 1. Try WMIC
+        if shutil.which("wmic"):
+            try:
+                res = subprocess.run(
+                    ["wmic", "path", "win32_VideoController", "get", "name"],
+                    capture_output=True,
+                    text=True,
+                    timeout=3
+                )
+                if res.returncode == 0:
+                    for line in res.stdout.splitlines():
+                        line_upper = line.strip().upper()
+                        if not line_upper or "NAME" in line_upper:
+                            continue
+                        if "NVIDIA" in line_upper or "GEFORCE" in line_upper or "RTX" in line_upper or "GTX" in line_upper or "QUADRO" in line_upper:
+                            if "NVIDIA" not in gpus:
+                                gpus.append("NVIDIA")
+                        if "AMD" in line_upper or "RADEON" in line_upper or "FIREPRO" in line_upper:
+                            if "AMD" not in gpus:
+                                gpus.append("AMD")
+            except Exception:
+                pass
+        
+        # 2. Try PowerShell as a fallback
+        if not gpus and shutil.which("powershell"):
+            try:
+                res = subprocess.run(
+                    ["powershell", "-Command", "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name"],
+                    capture_output=True,
+                    text=True,
+                    timeout=3
+                )
+                if res.returncode == 0:
+                    for line in res.stdout.splitlines():
+                        line_upper = line.strip().upper()
+                        if not line_upper:
+                            continue
+                        if "NVIDIA" in line_upper or "GEFORCE" in line_upper or "RTX" in line_upper or "GTX" in line_upper or "QUADRO" in line_upper:
+                            if "NVIDIA" not in gpus:
+                                gpus.append("NVIDIA")
+                        if "AMD" in line_upper or "RADEON" in line_upper or "FIREPRO" in line_upper:
+                            if "AMD" not in gpus:
+                                gpus.append("AMD")
+            except Exception:
+                pass
+
+    elif system == "Linux":
+        if shutil.which("lspci"):
+            try:
+                res = subprocess.run(["lspci"], capture_output=True, text=True, timeout=3)
+                if res.returncode == 0:
+                    for line in res.stdout.splitlines():
+                        line_upper = line.strip().upper()
+                        if "NVIDIA" in line_upper:
+                            if "NVIDIA" not in gpus:
+                                gpus.append("NVIDIA")
+                        if "AMD" in line_upper or "RADEON" in line_upper:
+                            if "AMD" not in gpus:
+                                gpus.append("AMD")
+            except Exception:
+                pass
+                
+    elif system == "Darwin":
+        gpus.append("APPLE")
+        
+    # Native torch fallbacks
+    try:
+        import torch
+        if torch.cuda.is_available():
+            name = torch.cuda.get_device_name(0).upper()
+            if "AMD" in name or "RADEON" in name:
+                if "AMD" not in gpus:
+                    gpus.append("AMD")
+            else:
+                if "NVIDIA" not in gpus:
+                    gpus.append("NVIDIA")
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            if "APPLE" not in gpus:
+                gpus.append("APPLE")
+    except Exception:
+        pass
+        
+    return gpus
+
 
 def _select_device() -> tuple[str, str]:
     """
@@ -51,7 +159,7 @@ def _select_device() -> tuple[str, str]:
     # --- NVIDIA CUDA or AMD ROCm (both expose torch.cuda) ---
     if torch.cuda.is_available():
         gpu_name = torch.cuda.get_device_name(0)
-        vram_gb = round(torch.cuda.get_device_properties(0).total_mem / (1024 ** 3), 1)
+        vram_gb = round(torch.cuda.get_device_properties(0).total_memory / (1024 ** 3), 1)
         logger.info(f"GPU detected: {gpu_name} ({vram_gb} GB VRAM)")
         if "AMD" in gpu_name.upper() or "RADEON" in gpu_name.upper():
             logger.info("Using AMD ROCm backend via CUDA API")
@@ -61,7 +169,7 @@ def _select_device() -> tuple[str, str]:
 
     # --- AMD / Intel / NVIDIA via DirectML (Windows) ---
     try:
-        import torch_directml  # noqa: F401
+        import torch_directml  # type: ignore # noqa: F401
         dml_device = torch_directml.device()
         logger.info(f"DirectML device available: {dml_device}")
         logger.info("Using DirectML backend for GPU inference")
@@ -82,6 +190,100 @@ def _select_device() -> tuple[str, str]:
         "  For AMD (Linux): Install PyTorch ROCm build from https://pytorch.org"
     )
     return "cpu", "CPU"
+
+
+def get_available_devices() -> list[dict]:
+    """
+    Enumerate all supported hardware backends and their availability status.
+    """
+    import torch
+    import platform
+    
+    physical_gpus = detect_physical_gpus()
+    logger.info(f"Detected physical GPUs: {physical_gpus}")
+    
+    devices = [
+        {"id": "cpu", "label": "CPU", "available": True}
+    ]
+    
+    # NVIDIA option
+    if "NVIDIA" in physical_gpus:
+        has_cuda = torch.cuda.is_available()
+        devices.append({
+            "id": "cuda",
+            "label": f"NVIDIA GPU (CUDA - {torch.cuda.get_device_name(0)})" if has_cuda else "NVIDIA GPU (CUDA)",
+            "available": True
+        })
+        
+    # AMD option
+    if "AMD" in physical_gpus:
+        system = platform.system()
+        if system == "Windows":
+            # AMD Windows uses DirectML
+            dml_label = "AMD GPU (DirectML)"
+            try:
+                import torch_directml
+                dml_device = torch_directml.device()
+                dml_label = f"AMD GPU (DirectML - {dml_device})"
+            except Exception:
+                pass
+            devices.append({
+                "id": "dml",
+                "label": dml_label,
+                "available": True
+            })
+        else:
+            # AMD Linux uses ROCm (accessed via 'cuda')
+            has_rocm = torch.cuda.is_available()
+            devices.append({
+                "id": "cuda",
+                "label": f"AMD GPU (ROCm - {torch.cuda.get_device_name(0)})" if has_rocm else "AMD GPU (ROCm)",
+                "available": True
+            })
+            
+    # Apple Silicon option
+    if "APPLE" in physical_gpus:
+        has_mps = hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+        devices.append({
+            "id": "mps",
+            "label": "Apple Silicon GPU (MPS)",
+            "available": True
+        })
+        
+    # Fallback to make sure we show active devices if physical detection returned empty but torch works
+    if not any(d["id"] == "cuda" for d in devices) and torch.cuda.is_available():
+        gpu_name = torch.cuda.get_device_name(0)
+        is_amd = "AMD" in gpu_name.upper() or "RADEON" in gpu_name.upper()
+        devices.append({
+            "id": "cuda",
+            "label": f"AMD GPU (ROCm - {gpu_name})" if is_amd else f"NVIDIA GPU (CUDA - {gpu_name})",
+            "available": True
+        })
+        
+    # Fallback for DirectML if not already added
+    has_dml = False
+    try:
+        import torch_directml
+        has_dml = True
+    except Exception:
+        pass
+    if has_dml and not any(d["id"] == "dml" for d in devices):
+        devices.append({
+            "id": "dml",
+            "label": "AMD GPU (DirectML)",
+            "available": True
+        })
+        
+    # Fallback for MPS if not already added
+    has_mps = hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+    if has_mps and not any(d["id"] == "mps" for d in devices):
+        devices.append({
+            "id": "mps",
+            "label": "Apple Silicon GPU (MPS)",
+            "available": True
+        })
+        
+    return devices
 
 
 DEVICE, DEVICE_LABEL = _select_device()
@@ -475,6 +677,27 @@ class InferenceEngine:
     _instance: Optional["InferenceEngine"] = None
     _lock = threading.Lock()
 
+    @property
+    def device(self) -> str:
+        return DEVICE
+
+    @property
+    def device_label(self) -> str:
+        return DEVICE_LABEL
+
+    @property
+    def device_id(self) -> str:
+        dev = DEVICE
+        if dev == "cpu":
+            return "cpu"
+        elif dev == "cuda":
+            return "cuda"
+        elif dev == "mps":
+            return "mps"
+        elif "privateuseone" in dev or "dml" in dev:
+            return "dml"
+        return dev
+
     def __new__(cls) -> "InferenceEngine":
         with cls._lock:
             if cls._instance is None:
@@ -498,8 +721,106 @@ class InferenceEngine:
         self.enhancer    = ESRGANEnhancer()
         self.colorizer   = ColorizationBranch()
         self.detector    = DetectionHead()
+        
+        # Pre-load LPIPS metrics model onto GPU/device
+        try:
+            from metrics_engine import warm_up_lpips
+            warm_up_lpips()
+        except Exception as e:
+            logger.warning(f"Could not warm up LPIPS in engine startup: {e}")
+
         self._ready      = True
         logger.info("═══ InferenceEngine warm — all models cached ═══")
+
+    def set_device(self, device_id: str) -> dict:
+        """
+        Dynamically change the active device and migrate loaded models.
+        """
+        import torch
+        target_torch_device = "cpu"
+        device_label = "CPU"
+
+        if device_id == "cuda":
+            if not torch.cuda.is_available():
+                phys = detect_physical_gpus()
+                import platform
+                system = platform.system()
+                if "AMD" in phys and system != "Windows":
+                    raise ValueError(
+                        "AMD ROCm support is not ready in PyTorch. "
+                        "To run on your AMD GPU via ROCm, please install PyTorch with ROCm support."
+                    )
+                else:
+                    raise ValueError(
+                        "NVIDIA CUDA support is not ready in PyTorch. "
+                        "To enable CUDA, please run:\n"
+                        "  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121"
+                    )
+            target_torch_device = "cuda"
+            device_label = torch.cuda.get_device_name(0)
+        elif device_id == "dml":
+            try:
+                import torch_directml  # type: ignore
+                target_torch_device = str(torch_directml.device())
+                device_label = "DirectML"
+            except Exception:
+                raise ValueError(
+                    "DirectML support is not ready. "
+                    "To enable DirectML support for AMD, please run:\n"
+                    "  pip install torch-directml"
+                )
+        elif device_id == "mps":
+            if not (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
+                raise ValueError("MPS (Apple Silicon Metal) is not available on this system.")
+            target_torch_device = "mps"
+            device_label = "Apple MPS"
+        elif device_id == "cpu":
+            target_torch_device = "cpu"
+            device_label = "CPU"
+        else:
+            raise ValueError(f"Unknown device: {device_id}")
+
+        global DEVICE, DEVICE_LABEL
+        old_device = DEVICE
+        DEVICE = target_torch_device
+        DEVICE_LABEL = device_label
+
+        # If models are already loaded, migrate them
+        if self._ready:
+            logger.info(f"Migrating active models to device: {target_torch_device} ({device_label})")
+            try:
+                if hasattr(self, "backbone") and self.backbone is not None:
+                    if hasattr(self.backbone, "model") and self.backbone.model is not None:
+                        self.backbone.model = self.backbone.model.to(target_torch_device)
+                    if hasattr(self.backbone, "_mean") and self.backbone._mean is not None:
+                        self.backbone._mean = self.backbone._mean.to(target_torch_device)
+                    if hasattr(self.backbone, "_std") and self.backbone._std is not None:
+                        self.backbone._std = self.backbone._std.to(target_torch_device)
+
+                if hasattr(self, "colorizer") and self.colorizer is not None:
+                    if hasattr(self.colorizer, "_model") and self.colorizer._model is not None:
+                        self.colorizer._model = self.colorizer._model.to(target_torch_device)
+
+                if hasattr(self, "detector") and self.detector is not None:
+                    if hasattr(self.detector, "_model") and self.detector._model is not None:
+                        if hasattr(self.detector._model, "model") and self.detector._model.model is not None:
+                            self.detector._model.model = self.detector._model.model.to(target_torch_device)
+
+                if hasattr(self, "enhancer") and self.enhancer is not None:
+                    # Reinitialize real-esrgan with the new device setting (safer than trying to move internal structures)
+                    self.enhancer._upsampler = self.enhancer._load()
+
+                from metrics_engine import update_lpips_device
+                update_lpips_device(target_torch_device)
+            except Exception as e:
+                logger.exception("Failed to migrate some models to the new device.")
+
+        return {
+            "status": "success",
+            "device": target_torch_device,
+            "device_label": device_label,
+            "device_type": "gpu" if target_torch_device != "cpu" else "cpu"
+        }
 
     # ── Pipeline entry point ──────────────────────────────────────────────────
 

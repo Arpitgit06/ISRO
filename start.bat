@@ -24,7 +24,7 @@ if not exist "node_modules" (
 
 :: --- Start Backend ---
 echo [1/2] Starting backend (FastAPI on port 8000)...
-start "TESSERACTZ Backend" cmd /k "call .venv\Scripts\activate.bat && python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-exclude .venv --reload-exclude node_modules --reload-exclude __pycache__ --reload-exclude .git"
+start "TESSERACTZ Backend" cmd /k "call .venv\Scripts\activate.bat && python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-exclude *venv* --reload-exclude *node_modules* --reload-exclude *__pycache__* --reload-exclude *.git*"
 echo   [OK] Backend starting in a new window.
 
 :: --- Wait for backend to init ---

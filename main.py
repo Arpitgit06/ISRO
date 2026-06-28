@@ -15,10 +15,11 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from inference_engine import DEVICE, DEVICE_LABEL, engine
+from inference_engine import engine
 from metrics_engine import generate_gradcam, run_all_metrics
 from schemas.response_schemas import ProcessResponse
 from utils.image_utils import numpy_to_b64, read_upload_bytes
+from pydantic import BaseModel
 
 logging.basicConfig(
     level=logging.INFO,
@@ -58,23 +59,48 @@ app.add_middleware(
 
 # ─── Routes ──────────────────────────────────────────────────────────────────
 
+class SetDeviceRequest(BaseModel):
+    device: str
+
+
+@app.get("/api/devices")
+async def get_devices():
+    """Retrieve list of supported devices and check their availability."""
+    from inference_engine import get_available_devices
+    return {
+        "devices": get_available_devices(),
+        "current_device": engine.device_id
+    }
+
+
+@app.post("/api/device")
+async def change_device(req: SetDeviceRequest):
+    """Dynamically switch the execution device for model inference."""
+    try:
+        res = engine.set_device(req.device)
+        return res
+    except ValueError as val_err:
+        raise HTTPException(status_code=400, detail=str(val_err))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Device change failed: {exc}")
+
+
 @app.get("/api/health")
 async def health():
     """Liveness + readiness probe."""
     import torch
-    from inference_engine import DEVICE, DEVICE_LABEL
 
     gpu_name = None
     if torch.cuda.is_available():
         gpu_name = torch.cuda.get_device_name(0)
-    elif DEVICE != "cpu":
-        gpu_name = DEVICE_LABEL
+    elif engine.device_id != "cpu":
+        gpu_name = engine.device_label
 
     return {
         "status":  "operational",
-        "device":  DEVICE,
-        "device_label": DEVICE_LABEL,
-        "device_type": "gpu" if DEVICE != "cpu" else "cpu",
+        "device":  engine.device_id,
+        "device_label": engine.device_label,
+        "device_type": "gpu" if engine.device_id != "cpu" else "cpu",
         "gpu_name": gpu_name,
         "engine_ready": engine._ready,
         "models": {
