@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 import useAppStore from '../store/useAppStore';
 
 const CLASS_COLORS_MAP = {
-  vehicle: '#F97316',
-  building: '#06B6D4',
-  road: '#10B981',
-  vegetation: '#84CC16',
+  vehicle: '#00FF66',
+  building: '#00D655',
+  road: '#00993D',
+  vegetation: '#80FF00',
 };
 
 export default function OverlayHUD({ imageRef }) {
@@ -148,13 +148,13 @@ export default function OverlayHUD({ imageRef }) {
               height={h}
               stroke={color}
               strokeWidth="1"
-              fill="rgba(249, 115, 22, 0.01)"
+              fill="rgba(0, 255, 102, 0.01)"
               style={{ pointerEvents: 'auto', cursor: 'pointer' }}
               initial={{ opacity: 0 }}
               animate={{ 
                 opacity: isHovered ? 1 : 0.6,
                 strokeWidth: isHovered ? 2 : 1,
-                fill: isHovered ? `${color}20` : 'rgba(249, 115, 22, 0.01)',
+                fill: isHovered ? `${color}20` : 'rgba(0, 255, 102, 0.01)',
                 filter: isHovered ? `drop-shadow(0 0 6px ${color})` : 'none'
               }}
               whileHover={{

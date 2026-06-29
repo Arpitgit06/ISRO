@@ -75,3 +75,6 @@ outputs/
 *.tmp
 *.bak
 cleanup_duplicates.bat
+.eslintcache
+video photos/
+video_photos/

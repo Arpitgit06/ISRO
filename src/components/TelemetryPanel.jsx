@@ -37,26 +37,34 @@ function AnimatedNumber({ value, decimals = 2 }) {
   return (displayValue / (10 ** decimals)).toFixed(decimals);
 }
 
-function MetricCard({ label, value, unit = '', color = '#F97316', subtitle = '', decimals = 2 }) {
+function MetricCard({ label, value, unit = '', color = '#00FF66', subtitle = '', decimals = 2 }) {
   return (
-    <div style={{ background: '#0D1525', border: '1px solid #1E3050', borderRadius: '8px', padding: '12px 14px', flex: 1, minWidth: 0 }}>
-      <div style={{ fontSize: '9px', color: '#334155', letterSpacing: '0.12em', marginBottom: '6px' }}>{label}</div>
-      <div style={{ fontSize: '24px', fontWeight: 700, color, lineHeight: 1, marginBottom: '2px' }}>
+    <div style={{ 
+      background: '#000000', 
+      border: '1px solid rgba(0, 255, 102, 0.25)', 
+      borderRadius: '2px', 
+      padding: '12px 14px', 
+      flex: 1, 
+      minWidth: 0,
+      fontFamily: "'Share Tech Mono', monospace"
+    }}>
+      <div style={{ fontSize: '9px', color: '#475569', letterSpacing: '0.12em', marginBottom: '6px' }}>{label}</div>
+      <div style={{ fontSize: '24px', fontWeight: 700, color, lineHeight: 1, marginBottom: '2px', fontFamily: "'Orbitron', sans-serif" }}>
         {value !== null && value !== undefined && !isNaN(value) ? (
           <AnimatedNumber value={value * (10 ** decimals)} decimals={decimals} />
         ) : '—'}
-        <span style={{ fontSize: '12px', color: '#64748B', marginLeft: '3px' }}>{unit}</span>
+        <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)', marginLeft: '3px', fontFamily: "'Share Tech Mono', monospace" }}>{unit}</span>
       </div>
-      {subtitle && <div style={{ fontSize: '10px', color: '#334155', marginTop: '4px' }}>{subtitle}</div>}
+      {subtitle && <div style={{ fontSize: '9.5px', color: 'rgba(0, 255, 102, 0.5)', marginTop: '4px' }}>{subtitle.toUpperCase()}</div>}
     </div>
   );
 }
 
-function SectionHeader({ title, accent = '#F97316' }) {
+function SectionHeader({ title, accent = '#00FF66' }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-      <div style={{ width: '3px', height: '14px', background: accent, borderRadius: '2px' }} />
-      <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748B', letterSpacing: '0.12em' }}>{title}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontFamily: "'Share Tech Mono', monospace" }}>
+      <div style={{ width: '3px', height: '14px', background: accent, borderRadius: '1px', boxShadow: `0 0 6px ${accent}` }} />
+      <span style={{ fontSize: '10px', fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.12em' }}>{title}</span>
     </div>
   );
 }
@@ -64,9 +72,9 @@ function SectionHeader({ title, accent = '#F97316' }) {
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '#0D1525', border: '1px solid #1E3050', borderRadius: '6px', padding: '6px 10px', fontSize: '11px' }}>
-      <p style={{ color: '#64748B', marginBottom: '2px' }}>{label}</p>
-      <p style={{ color: '#F97316' }}>{payload[0].value?.toFixed?.(1) ?? payload[0].value}</p>
+    <div style={{ background: '#000000', border: '1px solid rgba(0, 255, 102, 0.3)', borderRadius: '2px', padding: '6px 10px', fontSize: '11px', fontFamily: "'Share Tech Mono', monospace" }}>
+      <p style={{ color: '#64748B', marginBottom: '2px' }}>{label.toUpperCase()}</p>
+      <p style={{ color: '#00FF66', fontWeight: 'bold' }}>{payload[0].value?.toFixed?.(1) ?? payload[0].value}</p>
     </div>
   );
 };
@@ -104,10 +112,23 @@ function TerminalConsole() {
   }, []);
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#050810', border: '1px solid #1E3050', borderRadius: '8px', padding: '16px', fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', overflowY: 'hidden', color: '#10B981', boxShadow: 'inset 0 0 15px rgba(16, 185, 129, 0.04)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E3050', paddingBottom: '6px', marginBottom: '10px', color: '#64748B' }}>
+    <div style={{ 
+      flex: 1, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      background: '#000000', 
+      border: '1px solid rgba(0, 255, 102, 0.25)', 
+      borderRadius: '2px', 
+      padding: '16px', 
+      fontFamily: "'Share Tech Mono', 'JetBrains Mono', monospace", 
+      fontSize: '10px', 
+      overflowY: 'hidden', 
+      color: '#00FF66', 
+      boxShadow: 'inset 0 0 15px rgba(0, 255, 102, 0.03)' 
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(0, 255, 102, 0.15)', paddingBottom: '6px', marginBottom: '10px', color: '#475569' }}>
         <span>📡 TELEMETRY ENGINE LOGS</span>
-        <span style={{ animation: 'pulse 1.2s infinite' }}>● RUNNING</span>
+        <span style={{ animation: 'pulse 1.2s infinite', color: '#00FF66' }}>● RUNNING</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', height: '100%', scrollbarWidth: 'none' }}>
         {logs.map((log, i) => (
@@ -116,7 +137,7 @@ function TerminalConsole() {
             initial={{ opacity: 0, x: -5 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.15 }}
-            style={{ color: i === logs.length - 1 ? '#F97316' : '#10B981' }}
+            style={{ color: i === logs.length - 1 ? '#FFFFFF' : '#00FF66' }}
           >
             {log}
           </motion.div>
@@ -144,8 +165,12 @@ export default function TelemetryPanel() {
     count,
   }));
 
+  // Map classes to cybernetic HUD greens and limes
   const CLASS_COLORS_MAP = {
-    Vehicle: '#F97316', Building: '#06B6D4', Road: '#10B981', Vegetation: '#84CC16',
+    Vehicle: '#00FF66',     // Neon Green
+    Building: '#00D655',    // Medium Green
+    Road: '#00993D',        // Dark Green
+    Vegetation: '#80FF00',  // Lime Green
   };
 
   const containerVariants = {
@@ -164,13 +189,16 @@ export default function TelemetryPanel() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '16px', overflowY: 'auto', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '16px', overflowY: 'auto', height: '100%', background: '#000000' }}>
       {isProcessing && <TerminalConsole />}
       
       {!hasData && !isProcessing && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', color: '#1E3050' }}>
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1E3050" strokeWidth="1"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-          <p style={{ fontSize: '11px', color: '#334155', textAlign: 'center', letterSpacing: '0.1em' }}>AWAITING MISSION DATA</p>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', color: 'rgba(0, 255, 102, 0.15)' }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 6v6l4 2" />
+          </svg>
+          <p style={{ fontSize: '11px', color: '#475569', textAlign: 'center', letterSpacing: '0.12em', fontFamily: "'Share Tech Mono', monospace" }}>AWAITING MISSION DATA PACKET</p>
         </div>
       )}
 
@@ -179,35 +207,35 @@ export default function TelemetryPanel() {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+          style={{ display: 'flex', flexDirection: 'column', gap: '20px', fontFamily: "'Share Tech Mono', monospace" }}
         >
           <motion.section variants={itemVariants}>
-            <SectionHeader title="QUALITY METRICS" />
+            <SectionHeader title="QUALITY MATRIX METRICS" />
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-              <MetricCard label="PSNR  ENHANCED" value={metrics?.psnr_enhanced} unit="dB" color="#F97316" subtitle="vs IR baseline (SR)" decimals={2} />
-              <MetricCard label="PSNR  COLORIZED" value={metrics?.psnr_colorized} unit="dB" color="#06B6D4" subtitle="vs IR baseline (RGB)" decimals={2} />
+              <MetricCard label="PSNR ENHANCED" value={metrics?.psnr_enhanced} unit="dB" color="#00FF66" subtitle="vs IR baseline (SR)" decimals={2} />
+              <MetricCard label="PSNR COLORIZED" value={metrics?.psnr_colorized} unit="dB" color="#00D655" subtitle="vs IR baseline (RGB)" decimals={2} />
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <MetricCard label="SSIM  COLORIZED" value={metrics?.ssim_colorized} color="#10B981" subtitle="structural similarity (↑ better)" decimals={4} />
-              <MetricCard label="LPIPS  COLORIZED" value={metrics?.lpips_colorized} color="#EAB308" subtitle="perceptual distance (↓ better)" decimals={4} />
+              <MetricCard label="SSIM COLORIZED" value={metrics?.ssim_colorized} color="#00FF66" subtitle="structural similarity (↑ better)" decimals={4} />
+              <MetricCard label="LPIPS COLORIZED" value={metrics?.lpips_colorized} color="#80FF00" subtitle="perceptual distance (↓ better)" decimals={4} />
             </div>
           </motion.section>
 
           <motion.section variants={itemVariants}>
-            <SectionHeader title="DETECTION RESULTS" accent="#06B6D4" />
+            <SectionHeader title="DETECTION SHIELD RESULTS" accent="#00D655" />
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-              <MetricCard label="TOTAL OBJECTS" value={detections.length} color="#E2E8F0" decimals={0} />
-              <MetricCard label="DETECTION MODE" value={hasData ? 'YOLO-W' : null} color="#64748B" subtitle={hasData ? 'open-vocabulary' : ''} />
+              <MetricCard label="TOTAL IDENTIFIED" value={detections.length} color="#FFFFFF" decimals={0} />
+              <MetricCard label="DETECTION MODE" value={hasData ? 1 : null} color="#00FF66" subtitle={hasData ? 'YOLO-W OPEN-VOCAB' : ''} decimals={0} />
             </div>
             {detectionData.length > 0 && (
-              <div style={{ background: '#0D1525', border: '1px solid #1E3050', borderRadius: '8px', padding: '12px 10px' }}>
+              <div style={{ background: '#000000', border: '1px solid rgba(0, 255, 102, 0.25)', borderRadius: '2px', padding: '12px 10px' }}>
                 <ResponsiveContainer width="100%" height={100}>
                   <BarChart data={detectionData} margin={{ top: 0, right: 8, bottom: 0, left: -20 }}>
-                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#64748B' }} />
-                    <YAxis tick={{ fontSize: 9, fill: '#334155' }} allowDecimals={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#475569', fontFamily: 'Share Tech Mono' }} />
+                    <YAxis tick={{ fontSize: 9, fill: '#475569', fontFamily: 'Share Tech Mono' }} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="count" radius={[3, 3, 0, 0]}>
-                      {detectionData.map((d) => (<Cell key={d.label} fill={CLASS_COLORS_MAP[d.label] || '#F97316'} />))}
+                    <Bar dataKey="count" radius={[2, 2, 0, 0]}>
+                      {detectionData.map((d) => (<Cell key={d.label} fill={CLASS_COLORS_MAP[d.label] || '#00FF66'} />))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -218,7 +246,7 @@ export default function TelemetryPanel() {
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
                 {detectionData.map((d) => {
                   const labelLower = d.label.toLowerCase();
-                  const color = CLASS_COLORS_MAP[d.label] || '#F97316';
+                  const color = CLASS_COLORS_MAP[d.label] || '#00FF66';
                   const isHighlighted = hoveredClass === labelLower;
                   return (
                     <motion.div
@@ -227,14 +255,14 @@ export default function TelemetryPanel() {
                       onMouseLeave={() => setHoveredClass(null)}
                       whileHover={{ scale: 1.03 }}
                       animate={{
-                        borderColor: isHighlighted ? color : '#1E3050',
+                        borderColor: isHighlighted ? color : 'rgba(0, 255, 102, 0.2)',
                         boxShadow: isHighlighted ? `0 0 10px ${color}33` : 'none',
-                        background: isHighlighted ? `${color}11` : '#0D1525',
+                        background: isHighlighted ? `${color}11` : '#000000',
                       }}
                       style={{
                         flex: '1 1 calc(50% - 4px)',
-                        border: '1px solid #1E3050',
-                        borderRadius: '6px',
+                        border: '1px solid rgba(0, 255, 102, 0.2)',
+                        borderRadius: '2px',
                         padding: '8px 12px',
                         cursor: 'pointer',
                         display: 'flex',
@@ -243,8 +271,8 @@ export default function TelemetryPanel() {
                         transition: 'border-color 0.2s, background-color 0.2s',
                       }}
                     >
-                      <span style={{ fontSize: '9px', color: '#64748B', fontWeight: 700, letterSpacing: '0.05em' }}>{d.label.toUpperCase()}</span>
-                      <span style={{ fontSize: '13px', fontWeight: 800, color }}>
+                      <span style={{ fontSize: '9px', color: '#475569', fontWeight: 700, letterSpacing: '0.05em' }}>{d.label.toUpperCase()}</span>
+                      <span style={{ fontSize: '13px', fontWeight: 800, color, fontFamily: "'Orbitron', sans-serif" }}>
                         <AnimatedNumber value={d.count} decimals={0} />
                       </span>
                     </motion.div>
@@ -252,26 +280,35 @@ export default function TelemetryPanel() {
                 })}
               </div>
             )}
-            {hasData && detectionData.length === 0 && <p style={{ fontSize: '11px', color: '#334155', padding: '8px 0' }}>No objects detected above threshold.</p>}
+            {hasData && detectionData.length === 0 && <p style={{ fontSize: '11px', color: '#475569', padding: '8px 0' }}>No objects detected above threshold.</p>}
           </motion.section>
 
           <motion.section variants={itemVariants}>
-            <SectionHeader title="PIPELINE LATENCY" accent="#10B981" />
+            <SectionHeader title="PROCESSING LATENCY CORES" accent="#00FF66" />
             {latency && (
               <>
-                <div style={{ background: '#0D1525', border: '1px solid #1E3050', borderRadius: '8px', padding: '12px 10px' }}>
+                <div style={{ background: '#000000', border: '1px solid rgba(0, 255, 102, 0.25)', borderRadius: '2px', padding: '12px 10px' }}>
                   <ResponsiveContainer width="100%" height={90}>
                     <BarChart data={latencyData} layout="vertical" margin={{ top: 0, right: 40, bottom: 0, left: 0 }}>
-                      <XAxis type="number" tick={{ fontSize: 9, fill: '#334155' }} unit="ms" />
-                      <YAxis dataKey="stage" type="category" width={28} tick={{ fontSize: 9, fill: '#64748B' }} />
+                      <XAxis type="number" tick={{ fontSize: 9, fill: '#475569', fontFamily: 'Share Tech Mono' }} unit="ms" />
+                      <YAxis dataKey="stage" type="category" width={28} tick={{ fontSize: 9, fill: '#475569', fontFamily: 'Share Tech Mono' }} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="ms" fill="#F97316" radius={[0, 3, 3, 0]} opacity={0.8} />
+                      <Bar dataKey="ms" fill="#00FF66" radius={[0, 2, 2, 0]} opacity={0.8} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-                <div style={{ marginTop: '8px', padding: '8px 10px', background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 600 }}>TOTAL PIPELINE</span>
-                  <span style={{ fontSize: '12px', color: '#F97316', fontWeight: 800 }}>
+                <div style={{ 
+                  marginTop: '8px', 
+                  padding: '8px 12px', 
+                  background: 'rgba(0, 255, 102, 0.05)', 
+                  border: '1px solid rgba(0, 255, 102, 0.25)', 
+                  borderRadius: '2px', 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ fontSize: '10px', color: '#FFFFFF', fontWeight: 600, letterSpacing: '0.05em' }}>TOTAL PIPELINE COMPUTATION</span>
+                  <span style={{ fontSize: '13px', color: '#00FF66', fontWeight: 800, fontFamily: "'Orbitron', sans-serif" }}>
                     <AnimatedNumber value={latency.total_ms} decimals={0} /> ms
                   </span>
                 </div>

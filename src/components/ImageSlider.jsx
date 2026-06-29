@@ -44,9 +44,9 @@ export default function ImageSlider() {
   const rightSrc = `data:image/png;base64,${images[activeView]}`;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'flex', gap: '4px', padding: '8px 12px', borderBottom: '1px solid #1E3050' }}>
-        <span style={{ fontSize: '10px', color: '#64748B', marginRight: '8px', alignSelf: 'center' }}>COMPARE LEFT: RAW IR  |  RIGHT:</span>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#000000', fontFamily: "'Share Tech Mono', monospace" }}>
+      <div style={{ display: 'flex', gap: '4px', padding: '8px 12px', borderBottom: '1px solid rgba(0, 255, 102, 0.15)', alignItems: 'center' }}>
+        <span style={{ fontSize: '10px', color: '#475569', marginRight: '8px', letterSpacing: '0.05em' }}>COMPARE LEFT: RAW IR  |  RIGHT:</span>
         {VIEWS.slice(1).map((v) => {
           const isSelected = activeView === v.key;
           return (
@@ -58,14 +58,17 @@ export default function ImageSlider() {
               style={{ 
                 position: 'relative',
                 padding: '4px 12px', 
-                background: isSelected ? '#F97316' : 'transparent', 
-                color: isSelected ? '#000' : '#64748B', 
-                border: `1px solid ${isSelected ? '#F97316' : '#1E3050'}`, 
-                borderRadius: '4px', 
+                background: isSelected ? '#00FF66' : 'transparent', 
+                color: isSelected ? '#000000' : '#475569', 
+                border: `1px solid ${isSelected ? '#00FF66' : 'rgba(0, 255, 102, 0.25)'}`, 
+                borderRadius: '2px', 
                 fontSize: '10px', 
                 fontWeight: 700, 
                 cursor: 'pointer',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                fontFamily: "'Share Tech Mono', monospace",
+                letterSpacing: '0.05em',
+                transition: 'color 0.2s, border-color 0.2s'
               }}
             >
               {isSelected && (
@@ -74,7 +77,7 @@ export default function ImageSlider() {
                   style={{
                     position: 'absolute',
                     inset: 0,
-                    background: '#F97316',
+                    background: '#00FF66',
                     zIndex: -1
                   }}
                   transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -85,7 +88,7 @@ export default function ImageSlider() {
           );
         })}
       </div>
-      <div ref={containerRef} style={{ position: 'relative', flex: 1, overflow: 'hidden', userSelect: 'none' }}>
+      <div ref={containerRef} style={{ position: 'relative', flex: 1, overflow: 'hidden', userSelect: 'none', background: '#000000' }}>
         <AnimatePresence mode="wait">
           <motion.img 
             key={activeView}
@@ -123,25 +126,25 @@ export default function ImageSlider() {
             zIndex: 20 
           }}
         >
-          <div style={{ position: 'absolute', top: 0, bottom: 0, width: '2px', background: '#F97316', boxShadow: '0 0 6px #F97316' }} />
+          <div style={{ position: 'absolute', top: 0, bottom: 0, width: '2px', background: '#00FF66', boxShadow: '0 0 8px #00FF66' }} />
           <motion.div 
-            whileHover={{ scale: 1.15, boxShadow: '0 0 12px #F97316' }}
+            whileHover={{ scale: 1.15, boxShadow: '0 0 12px #00FF66' }}
             whileTap={{ scale: 0.9 }}
             animate={{
-              boxShadow: dragging ? '0 0 15px #F97316' : '0 0 6px rgba(249, 115, 22, 0.4)'
+              boxShadow: dragging ? '0 0 15px #00FF66' : '0 0 6px rgba(0, 255, 102, 0.4)'
             }}
             style={{ 
               width: '32px', 
               height: '32px', 
               borderRadius: '50%', 
-              background: '#0A0E1A', 
-              border: '2px solid #F97316', 
+              background: '#000000', 
+              border: '2px solid #00FF66', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center' 
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="2.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00FF66" strokeWidth="2.5">
               <path d="M9 18l-6-6 6-6M15 6l6 6-6 6" />
             </svg>
           </motion.div>
