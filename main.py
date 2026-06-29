@@ -50,8 +50,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # tighten in production
-    allow_credentials=True,
+    allow_origins=["*"],          # wildcard origin is secure here because allow_credentials is False
+    allow_credentials=False,      # credentials are not transmitted by the client dashboard
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -126,6 +126,8 @@ async def process_image(
     - PSNR / SSIM / LPIPS metrics
     - Per-stage latency timings
     """
+    import os
+
     # ── Validate mime type ──
     allowed = {"image/tiff", "image/png", "image/jpeg", "image/jpg", "application/octet-stream"}
     if file.content_type not in allowed:
@@ -134,12 +136,44 @@ async def process_image(
             detail=f"Unsupported file type: {file.content_type}. Use TIF, PNG, or JPEG.",
         )
 
-    # ── Decode upload bytes → numpy ──
+    # ── Read and enforce file size constraints (Max 50MB) ──
+    MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB limit
     t_upload = time.perf_counter()
     raw_bytes = await file.read()
-    raw_np = read_upload_bytes(raw_bytes)
+    if len(raw_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Payload too large. Uploaded file exceeds size limit of 50 MB."
+        )
+
+    # ── Decode upload bytes → numpy ──
+    try:
+        raw_np = read_upload_bytes(raw_bytes)
+    except ValueError as val_err:
+        logger.error(f"Image decoding failed for file {file.filename}: {val_err}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid image content: {val_err}"
+        )
+    except Exception as exc:
+        logger.exception("Unexpected error during image reading")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to read image payload: {exc}"
+        )
+
     upload_ms = round((time.perf_counter() - t_upload) * 1000, 2)
-    logger.info(f"Received {file.filename!r} — shape {raw_np.shape}, dtype {raw_np.dtype}  ({upload_ms} ms)")
+    
+    # Sanitize filename to prevent directory traversal or injection
+    safe_filename = os.path.basename(file.filename or "unknown_frame")
+    logger.info(f"Received {safe_filename!r} — shape {raw_np.shape}, dtype {raw_np.dtype}  ({upload_ms} ms)")
+
+    # ── Check for empty or invalid image dimensions ──
+    if raw_np.size == 0 or raw_np.shape[0] == 0 or raw_np.shape[1] == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded image has empty dimensions (width or height is 0)."
+        )
 
     # ── Stash a uint8 grayscale copy as the display "raw" ──
     raw_display = raw_np.copy()
@@ -189,7 +223,7 @@ async def process_image(
 
     return JSONResponse(content={
         "status":       "success",
-        "filename":     file.filename,
+        "filename":     safe_filename,
         "images":       images,
         "detections":   result["detections"],
         "class_counts": result["class_counts"],

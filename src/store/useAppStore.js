@@ -23,6 +23,8 @@ const useAppStore = create((set) => ({
     gradcam: false,
     masks: false,
   },
+  hoveredClass: null,
+  setHoveredClass: (c) => set({ hoveredClass: c }),
   setImages: (imgs) => set({ images: imgs }),
   setResults: ({ detections, classCount, metrics, latency, filename }) =>
     set({ detections, classCount, metrics, latency, filename }),
@@ -42,6 +44,7 @@ const useAppStore = create((set) => ({
     error: null,
     activeView: 'colorized',
     uploadProgress: 0,
+    hoveredClass: null,
   }),
 }));
 

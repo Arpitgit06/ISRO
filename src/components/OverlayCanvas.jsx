@@ -13,7 +13,7 @@ export default function OverlayCanvas({ imageRef }) {
     return () => observer.disconnect();
   }, [imageRef, redraw]);
 
-  const anyActive = overlays.bboxes || overlays.gradcam || overlays.masks;
+  const anyActive = overlays.gradcam;
 
   return (
     <canvas

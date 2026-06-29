@@ -128,7 +128,7 @@ if exist "package-lock.json" (
 
 :: --- Install Node Dependencies ---
 echo.
-echo [6/6] Installing Node.js dependencies...
+echo [6/6] Installing Node.js dependencies (including framer-motion and anime.js)...
 call npm install
 if %ERRORLEVEL% NEQ 0 (
     echo   [ERROR] npm install failed. Check the output above.

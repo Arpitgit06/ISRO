@@ -116,23 +116,24 @@ def compute_lpips(ref: np.ndarray, target: np.ndarray) -> float:
 
     try:
         import lpips
-        from inference_engine import DEVICE
+        from inference_engine import engine
+        device = engine.device
 
         if _lpips_fn is None:
-            _lpips_fn = lpips.LPIPS(net="alex", verbose=False).to(DEVICE)
+            _lpips_fn = lpips.LPIPS(net="alex", verbose=False).to(device)
 
         def _t(img: np.ndarray) -> torch.Tensor:
             img_rs = cv2.resize(img, (256, 256))
             return (
                 torch.from_numpy(img_rs).float().permute(2, 0, 1).unsqueeze(0) / 127.5 - 1.0
-            ).to(DEVICE)
+            ).to(device)
 
         with torch.no_grad():
             score = _lpips_fn(_t(ref), _t(target))
         return round(float(score.item()), 4)
 
-    except ImportError:
-        logger.warning("lpips not installed — using MSE-based perceptual proxy.")
+    except Exception as exc:
+        logger.warning(f"LPIPS Similarity failed: {exc} — falling back to normalized MSE.")
         mse = np.mean((ref.astype(np.float64) - target.astype(np.float64)) ** 2)
         return round(float(mse / (255.0 ** 2)), 4)
 
@@ -224,10 +225,11 @@ def warm_up_lpips() -> None:
     global _lpips_fn
     try:
         import lpips
-        from inference_engine import DEVICE
+        from inference_engine import engine
+        device = engine.device
         if _lpips_fn is None:
             logger.info("Pre-loading LPIPS (AlexNet) model...")
-            _lpips_fn = lpips.LPIPS(net="alex", verbose=False).to(DEVICE)
+            _lpips_fn = lpips.LPIPS(net="alex", verbose=False).to(device)
             logger.info("LPIPS model pre-loaded successfully.")
     except Exception as e:
         logger.warning(f"Could not pre-load LPIPS model: {e}")

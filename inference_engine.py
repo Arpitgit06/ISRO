@@ -31,6 +31,11 @@ import cv2
 import numpy as np
 import torch
 import torch.nn.functional as F
+
+# Limit PyTorch CPU thread pool to keep CPU load low during execution fallbacks
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+
 import timm
 from PIL import Image
 import sys
@@ -49,10 +54,17 @@ logger = logging.getLogger(__name__)
 
 # ─── Global constants ─────────────────────────────────────────────────────────
 
+_cached_physical_gpus: Optional[list[str]] = None
+
 def detect_physical_gpus() -> list[str]:
     """
     Detect physical GPU brands (NVIDIA, AMD, APPLE) present on the system.
+    Caches the results to prevent repeated shell command executions.
     """
+    global _cached_physical_gpus
+    if _cached_physical_gpus is not None:
+        return _cached_physical_gpus
+
     import subprocess
     import shutil
     import platform
@@ -143,6 +155,7 @@ def detect_physical_gpus() -> list[str]:
     except Exception:
         pass
         
+    _cached_physical_gpus = gpus
     return gpus
 
 
@@ -298,6 +311,16 @@ ESRGAN_WEIGHT_PATH = CHECKPOINT_DIR / "realesrgan" / "RealESRGAN_x4plus.pth"
 
 logger.info(f"TESSERACTZ inference engine — compute device: {DEVICE}")
 
+if DEVICE == "cpu":
+    logger.warning(
+        "\n========================================================================\n"
+        "  [WARNING] TESSERACTZ is running in CPU FALLBACK mode!\n"
+        "  Processing times will be slow. Ensure PyTorch is compiled with GPU support.\n"
+        "  To install PyTorch with NVIDIA GPU support, run:\n"
+        "    pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121\n"
+        "========================================================================\n"
+    )
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -420,7 +443,16 @@ class ESRGANEnhancer:
             ESRGAN_WEIGHT_PATH.parent.mkdir(parents=True, exist_ok=True)
             if not ESRGAN_WEIGHT_PATH.exists():
                 logger.info("Downloading RealESRGAN_x4plus.pth (~64 MB)…")
-                urllib.request.urlretrieve(ESRGAN_WEIGHT_URL, ESRGAN_WEIGHT_PATH)
+                temp_path = ESRGAN_WEIGHT_PATH.with_suffix(".tmp")
+                try:
+                    # Download to temporary location first, then move atomically
+                    urllib.request.urlretrieve(ESRGAN_WEIGHT_URL, temp_path)
+                    temp_path.replace(ESRGAN_WEIGHT_PATH)
+                    logger.info("RealESRGAN weight download complete (atomic verified).")
+                except Exception as dl_err:
+                    if temp_path.exists():
+                        temp_path.unlink()
+                    raise RuntimeError(f"Weights download failed: {dl_err}") from dl_err
 
             net = RRDBNet(
                 num_in_ch=3, num_out_ch=3,
@@ -434,6 +466,7 @@ class ESRGANEnhancer:
                 tile_pad=10,
                 pre_pad=0,
                 half=(DEVICE == "cuda"),
+                device=torch.device(DEVICE)
             )
             logger.info("Real-ESRGAN ready.")
             return upsampler
@@ -622,8 +655,12 @@ class DetectionHead:
         Returns:
             List of dicts:  {label: str, confidence: float, bbox: [x1,y1,x2,y2]}
         """
+        yolo_device = DEVICE
+        if "privateuseone" in str(yolo_device) or "dml" in str(yolo_device):
+            yolo_device = "cpu"
+
         results = self._model(
-            rgb, conf=self.conf, device=DEVICE, verbose=False
+            rgb, conf=self.conf, device=yolo_device, verbose=False
         )
         detections: list[dict] = []
 
@@ -643,10 +680,17 @@ class DetectionHead:
                     if label is None:
                         continue        # skip non-target classes
 
+                x1, y1, x2, y2 = box.xyxy[0].tolist()
+                H, W = rgb.shape[:2]
+                x1_clipped = max(0.0, min(float(x1), float(W)))
+                y1_clipped = max(0.0, min(float(y1), float(H)))
+                x2_clipped = max(0.0, min(float(x2), float(W)))
+                y2_clipped = max(0.0, min(float(y2), float(H)))
+
                 detections.append({
                     "label":      label,
                     "confidence": round(float(box.conf), 4),
-                    "bbox":       [round(float(v), 1) for v in box.xyxy[0].tolist()],
+                    "bbox":       [round(x1_clipped, 1), round(y1_clipped, 1), round(x2_clipped, 1), round(y2_clipped, 1)],
                 })
 
         return detections
@@ -704,6 +748,7 @@ class InferenceEngine:
                 inst = super().__new__(cls)
                 inst._ready = False
                 inst._last_features: Optional[list] = None
+                inst.lock = threading.RLock()
                 cls._instance = inst
         return cls._instance
 
@@ -736,91 +781,104 @@ class InferenceEngine:
         """
         Dynamically change the active device and migrate loaded models.
         """
-        import torch
-        target_torch_device = "cpu"
-        device_label = "CPU"
-
-        if device_id == "cuda":
-            if not torch.cuda.is_available():
-                phys = detect_physical_gpus()
-                import platform
-                system = platform.system()
-                if "AMD" in phys and system != "Windows":
-                    raise ValueError(
-                        "AMD ROCm support is not ready in PyTorch. "
-                        "To run on your AMD GPU via ROCm, please install PyTorch with ROCm support."
-                    )
-                else:
-                    raise ValueError(
-                        "NVIDIA CUDA support is not ready in PyTorch. "
-                        "To enable CUDA, please run:\n"
-                        "  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121"
-                    )
-            target_torch_device = "cuda"
-            device_label = torch.cuda.get_device_name(0)
-        elif device_id == "dml":
-            try:
-                import torch_directml  # type: ignore
-                target_torch_device = str(torch_directml.device())
-                device_label = "DirectML"
-            except Exception:
-                raise ValueError(
-                    "DirectML support is not ready. "
-                    "To enable DirectML support for AMD, please run:\n"
-                    "  pip install torch-directml"
-                )
-        elif device_id == "mps":
-            if not (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
-                raise ValueError("MPS (Apple Silicon Metal) is not available on this system.")
-            target_torch_device = "mps"
-            device_label = "Apple MPS"
-        elif device_id == "cpu":
+        with self.lock:
+            import torch
+            import gc
             target_torch_device = "cpu"
             device_label = "CPU"
-        else:
-            raise ValueError(f"Unknown device: {device_id}")
 
-        global DEVICE, DEVICE_LABEL
-        old_device = DEVICE
-        DEVICE = target_torch_device
-        DEVICE_LABEL = device_label
+            if device_id == "cuda":
+                if not torch.cuda.is_available():
+                    phys = detect_physical_gpus()
+                    import platform
+                    system = platform.system()
+                    if "AMD" in phys and system != "Windows":
+                        raise ValueError(
+                            "AMD ROCm support is not ready in PyTorch. "
+                            "To run on your AMD GPU via ROCm, please install PyTorch with ROCm support."
+                        )
+                    else:
+                        raise ValueError(
+                            "NVIDIA CUDA support is not ready in PyTorch. "
+                            "To enable CUDA, please run:\n"
+                            "  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121"
+                        )
+                target_torch_device = "cuda"
+                device_label = torch.cuda.get_device_name(0)
+            elif device_id == "dml":
+                try:
+                    import torch_directml  # type: ignore
+                    target_torch_device = str(torch_directml.device())
+                    device_label = "DirectML"
+                except Exception:
+                    raise ValueError(
+                        "DirectML support is not ready. "
+                        "To enable DirectML support for AMD, please run:\n"
+                        "  pip install torch-directml"
+                    )
+            elif device_id == "mps":
+                if not (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
+                    raise ValueError("MPS (Apple Silicon Metal) is not available on this system.")
+                target_torch_device = "mps"
+                device_label = "Apple MPS"
+            elif device_id == "cpu":
+                target_torch_device = "cpu"
+                device_label = "CPU"
+            else:
+                raise ValueError(f"Unknown device: {device_id}")
 
-        # If models are already loaded, migrate them
-        if self._ready:
-            logger.info(f"Migrating active models to device: {target_torch_device} ({device_label})")
-            try:
-                if hasattr(self, "backbone") and self.backbone is not None:
-                    if hasattr(self.backbone, "model") and self.backbone.model is not None:
-                        self.backbone.model = self.backbone.model.to(target_torch_device)
-                    if hasattr(self.backbone, "_mean") and self.backbone._mean is not None:
-                        self.backbone._mean = self.backbone._mean.to(target_torch_device)
-                    if hasattr(self.backbone, "_std") and self.backbone._std is not None:
-                        self.backbone._std = self.backbone._std.to(target_torch_device)
+            global DEVICE, DEVICE_LABEL
+            old_device = DEVICE
+            DEVICE = target_torch_device
+            DEVICE_LABEL = device_label
 
-                if hasattr(self, "colorizer") and self.colorizer is not None:
-                    if hasattr(self.colorizer, "_model") and self.colorizer._model is not None:
-                        self.colorizer._model = self.colorizer._model.to(target_torch_device)
+            # If models are already loaded, migrate them
+            if self._ready:
+                logger.info(f"Migrating active models to device: {target_torch_device} ({device_label})")
+                try:
+                    if hasattr(self, "backbone") and self.backbone is not None:
+                        if hasattr(self.backbone, "model") and self.backbone.model is not None:
+                            self.backbone.model = self.backbone.model.to(target_torch_device)
+                        if hasattr(self.backbone, "_mean") and self.backbone._mean is not None:
+                            self.backbone._mean = self.backbone._mean.to(target_torch_device)
+                        if hasattr(self.backbone, "_std") and self.backbone._std is not None:
+                            self.backbone._std = self.backbone._std.to(target_torch_device)
 
-                if hasattr(self, "detector") and self.detector is not None:
-                    if hasattr(self.detector, "_model") and self.detector._model is not None:
-                        if hasattr(self.detector._model, "model") and self.detector._model.model is not None:
-                            self.detector._model.model = self.detector._model.model.to(target_torch_device)
+                    if hasattr(self, "colorizer") and self.colorizer is not None:
+                        if hasattr(self.colorizer, "_model") and self.colorizer._model is not None:
+                            self.colorizer._model = self.colorizer._model.to(target_torch_device)
 
-                if hasattr(self, "enhancer") and self.enhancer is not None:
-                    # Reinitialize real-esrgan with the new device setting (safer than trying to move internal structures)
-                    self.enhancer._upsampler = self.enhancer._load()
+                    if hasattr(self, "detector") and self.detector is not None:
+                        if hasattr(self.detector, "_model") and self.detector._model is not None:
+                            try:
+                                # Try migrating the top-level YOLO object wrapper directly
+                                self.detector._model.to(target_torch_device)
+                            except Exception as yolo_err:
+                                logger.warning(f"Could not migrate YOLO wrapper directly ({yolo_err}) — attempting underlying PyTorch model.")
+                                if hasattr(self.detector._model, "model") and self.detector._model.model is not None:
+                                    self.detector._model.model = self.detector._model.model.to(target_torch_device)
 
-                from metrics_engine import update_lpips_device
-                update_lpips_device(target_torch_device)
-            except Exception as e:
-                logger.exception("Failed to migrate some models to the new device.")
+                    if hasattr(self, "enhancer") and self.enhancer is not None:
+                        # Reinitialize real-esrgan with the new device setting (safer than trying to move internal structures)
+                        self.enhancer._upsampler = self.enhancer._load()
 
-        return {
-            "status": "success",
-            "device": target_torch_device,
-            "device_label": device_label,
-            "device_type": "gpu" if target_torch_device != "cpu" else "cpu"
-        }
+                    from metrics_engine import update_lpips_device
+                    update_lpips_device(target_torch_device)
+
+                    # Trigger garbage collection and purge unused allocations from the old GPU memory pools
+                    gc.collect()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+
+                except Exception as e:
+                    logger.exception("Failed to migrate some models to the new device.")
+
+            return {
+                "status": "success",
+                "device": target_torch_device,
+                "device_label": device_label,
+                "device_type": "gpu" if target_torch_device != "cpu" else "cpu"
+            }
 
     # ── Pipeline entry point ──────────────────────────────────────────────────
 
@@ -842,53 +900,54 @@ class InferenceEngine:
                 "latency_ms":    dict[str, float]         — stage timings
             }
         """
-        if not self._ready:
-            self.warm_up()
+        with self.lock:
+            if not self._ready:
+                self.warm_up()
 
-        ts: dict[str, float] = {}
+            ts: dict[str, float] = {}
 
-        # ① Preprocessing
-        t = time.perf_counter()
-        preprocessed = preprocess_ir_frame(raw_image)
-        ts["preprocessing_ms"] = _ms(t)
-
-        # ② Backbone  (features stored for GradCAM access in metrics_engine.py)
-        t = time.perf_counter()
-        self._last_features = self.backbone.extract_features(preprocessed)
-        ts["backbone_ms"] = _ms(t)
-
-        # ③ Enhancement branch
-        t = time.perf_counter()
-        enhanced = self.enhancer.enhance(preprocessed)
-        ts["esrgan_ms"] = _ms(t)
-
-        # ④ Colorization branch
-        t = time.perf_counter()
-        colorized = self.colorizer.colorize(preprocessed)
-        ts["colorization_ms"] = _ms(t)
-
-        # ⑤ Detection head
-        detections: list[dict] = []
-        class_counts: dict[str, int] = {}
-        ts["detection_ms"] = 0.0
-
-        if run_detection:
+            # ① Preprocessing
             t = time.perf_counter()
-            detections = self.detector.detect(colorized)
-            ts["detection_ms"] = _ms(t)
-            for det in detections:
-                class_counts[det["label"]] = class_counts.get(det["label"], 0) + 1
+            preprocessed = preprocess_ir_frame(raw_image)
+            ts["preprocessing_ms"] = _ms(t)
 
-        ts["total_ms"] = round(sum(ts.values()), 2)
+            # ② Backbone  (features stored for GradCAM access in metrics_engine.py)
+            t = time.perf_counter()
+            self._last_features = self.backbone.extract_features(preprocessed)
+            ts["backbone_ms"] = _ms(t)
 
-        return {
-            "preprocessed":  preprocessed,
-            "enhanced":      enhanced,
-            "colorized":     colorized,
-            "detections":    detections,
-            "class_counts":  class_counts,
-            "latency_ms":    ts,
-        }
+            # ③ Enhancement branch
+            t = time.perf_counter()
+            enhanced = self.enhancer.enhance(preprocessed)
+            ts["esrgan_ms"] = _ms(t)
+
+            # ④ Colorization branch
+            t = time.perf_counter()
+            colorized = self.colorizer.colorize(preprocessed)
+            ts["colorization_ms"] = _ms(t)
+
+            # ⑤ Detection head
+            detections: list[dict] = []
+            class_counts: dict[str, int] = {}
+            ts["detection_ms"] = 0.0
+
+            if run_detection:
+                t = time.perf_counter()
+                detections = self.detector.detect(colorized)
+                ts["detection_ms"] = _ms(t)
+                for det in detections:
+                    class_counts[det["label"]] = class_counts.get(det["label"], 0) + 1
+
+            ts["total_ms"] = round(sum(ts.values()), 2)
+
+            return {
+                "preprocessed":  preprocessed,
+                "enhanced":      enhanced,
+                "colorized":     colorized,
+                "detections":    detections,
+                "class_counts":  class_counts,
+                "latency_ms":    ts,
+            }
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────

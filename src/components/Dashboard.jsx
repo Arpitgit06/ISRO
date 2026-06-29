@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import useAppStore from '../store/useAppStore';
 import { fetchHealth, fetchDevices, changeDevice } from '../services/api';
 import UploadZone from './UploadZone';
 import ImageSlider from './ImageSlider';
 import TelemetryPanel from './TelemetryPanel';
 import ControlBar from './ControlBar';
+import BootScreen from './BootScreen';
 
 function Header({ health, devicesInfo, onDeviceChange, deviceChanging }) {
   const { filename } = useAppStore();
@@ -82,6 +84,7 @@ export default function Dashboard() {
   const [health, setHealth] = useState(null);
   const [devicesInfo, setDevicesInfo] = useState(null);
   const [deviceChanging, setDeviceChanging] = useState(false);
+  const [booting, setBooting] = useState(true);
   const hasResults = !!images.colorized;
 
   const pollHealth = async () => {
@@ -120,22 +123,30 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0A0E1A', color: '#E2E8F0', overflow: 'hidden', position: 'relative' }}>
-      <Header 
-        health={health} 
-        devicesInfo={devicesInfo} 
-        onDeviceChange={handleDeviceChange} 
-        deviceChanging={deviceChanging} 
-      />
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
-        <div style={{ flex: '0 0 60%', display: 'flex', flexDirection: 'column', borderRight: '1px solid #1E3050', overflow: 'hidden' }}>
-          {hasResults ? <ImageSlider /> : <UploadZone />}
+    <>
+      {booting && <BootScreen onComplete={() => setBooting(false)} />}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: booting ? 0 : 1 }}
+        transition={{ duration: 0.8 }}
+        style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0A0E1A', color: '#E2E8F0', overflow: 'hidden', position: 'relative' }}
+      >
+        <Header 
+          health={health} 
+          devicesInfo={devicesInfo} 
+          onDeviceChange={handleDeviceChange} 
+          deviceChanging={deviceChanging} 
+        />
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
+          <div style={{ flex: '0 0 60%', display: 'flex', flexDirection: 'column', borderRight: '1px solid #1E3050', overflow: 'hidden' }}>
+            {hasResults ? <ImageSlider /> : <UploadZone />}
+          </div>
+          <div style={{ flex: '0 0 40%', display: 'flex', flexDirection: 'column', background: '#0A0E1A', overflow: 'hidden' }}>
+            <TelemetryPanel />
+          </div>
         </div>
-        <div style={{ flex: '0 0 40%', display: 'flex', flexDirection: 'column', background: '#0A0E1A', overflow: 'hidden' }}>
-          <TelemetryPanel />
-        </div>
-      </div>
-      <ControlBar onReset={reset} />
-    </div>
+        <ControlBar onReset={reset} />
+      </motion.div>
+    </>
   );
 }
