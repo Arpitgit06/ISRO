@@ -112,6 +112,7 @@ async def health():
     }
 
 
+
 @app.post("/api/process", response_model=ProcessResponse)
 async def process_image(
     file: UploadFile = File(..., description="IR image — TIF / PNG / JPEG"),

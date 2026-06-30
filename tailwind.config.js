@@ -12,10 +12,10 @@ module.exports = {
           border:   '#1E3050',
           accent:   '#F97316',   // neon orange
           cyan:     '#06B6D4',   // neon cyan
-          green:    '#10B981',   // active / success
+          green:    '#F26522',   // ISRO saffron (active / success)
           red:      '#EF4444',   // alert
           yellow:   '#EAB308',   // warning
-          lime:     '#84CC16',   // vegetation
+          lime:     '#0082C8',   // ISRO blue (secondary accent)
           text:     '#E2E8F0',   // primary text
           muted:    '#64748B',   // secondary text
           dim:      '#334155',   // tertiary text / borders
@@ -28,7 +28,7 @@ module.exports = {
       boxShadow: {
         'glow-orange': '0 0 16px rgba(249,115,22,0.5)',
         'glow-cyan':   '0 0 16px rgba(6,182,212,0.5)',
-        'glow-green':  '0 0 16px rgba(16,185,129,0.5)',
+        'glow-green':  '0 0 16px rgba(242,101,34,0.5)',
       },
       animation: {
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',

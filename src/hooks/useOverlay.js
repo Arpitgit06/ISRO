@@ -6,8 +6,8 @@ import useAppStore from '../store/useAppStore';
 const CLASS_COLORS = {
   vehicle: '#F97316',
   building: '#06B6D4',
-  road: '#10B981',
-  vegetation: '#84CC16',
+  road: '#005E99',        // ISRO Dark Blue
+  vegetation: '#FFA24D',  // Soft Saffron/Orange
 };
 
 export function useOverlay(canvasRef, imageRef) {

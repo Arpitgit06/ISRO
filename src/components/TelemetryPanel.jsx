@@ -1,32 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import anime from 'animejs';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, Cell } from 'recharts';
 import useAppStore from '../store/useAppStore';
 
 function AnimatedNumber({ value, decimals = 2 }) {
-  const [displayValue, setDisplayValue] = useState(0);
+  const ref = useRef(null);
   const prevValueRef = useRef(0);
-  const targetRef = useRef({ val: 0 });
 
   useEffect(() => {
-    const startVal = prevValueRef.current;
-    const currentTarget = targetRef.current;
-    currentTarget.val = startVal;
-    
-    const factor = 10 ** decimals;
+    const currentTarget = { val: prevValueRef.current };
     anime({
       targets: currentTarget,
-      val: value || 0,
-      round: factor,
+      val: value,
+      round: false,
       duration: 1000,
       easing: 'easeOutExpo',
       update: () => {
-        setDisplayValue(currentTarget.val);
+        if (ref.current) {
+          ref.current.textContent = (currentTarget.val / (10 ** decimals)).toFixed(decimals);
+        }
+      },
+      complete: () => {
+        prevValueRef.current = value;
       }
     });
-
-    prevValueRef.current = value || 0;
     return () => anime.remove(currentTarget);
   }, [value, decimals]);
 
@@ -34,14 +32,20 @@ function AnimatedNumber({ value, decimals = 2 }) {
     return '—';
   }
 
-  return (displayValue / (10 ** decimals)).toFixed(decimals);
+  return (
+    <span ref={ref}>
+      {(prevValueRef.current / (10 ** decimals)).toFixed(decimals)}
+    </span>
+  );
 }
 
-function MetricCard({ label, value, unit = '', color = '#00FF66', subtitle = '', decimals = 2 }) {
+function MetricCard({ label, value, unit = '', color = 'var(--accent-color)', subtitle = '', decimals = 2 }) {
   return (
     <div style={{ 
-      background: '#000000', 
-      border: '1px solid rgba(0, 255, 102, 0.25)', 
+      background: 'rgba(0, 0, 0, 0.2)', 
+      backdropFilter: 'blur(2px)',
+      WebkitBackdropFilter: 'blur(2px)',
+      border: '1px solid var(--accent-dim)', 
       borderRadius: '2px', 
       padding: '12px 14px', 
       flex: 1, 
@@ -55,12 +59,12 @@ function MetricCard({ label, value, unit = '', color = '#00FF66', subtitle = '',
         ) : '—'}
         <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)', marginLeft: '3px', fontFamily: "'Share Tech Mono', monospace" }}>{unit}</span>
       </div>
-      {subtitle && <div style={{ fontSize: '9.5px', color: 'rgba(0, 255, 102, 0.5)', marginTop: '4px' }}>{subtitle.toUpperCase()}</div>}
+      {subtitle && <div style={{ fontSize: '9.5px', color: 'rgba(255, 255, 255, 0.3)', marginTop: '4px' }}>{subtitle.toUpperCase()}</div>}
     </div>
   );
 }
 
-function SectionHeader({ title, accent = '#00FF66' }) {
+function SectionHeader({ title, accent = 'var(--accent-color)' }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontFamily: "'Share Tech Mono', monospace" }}>
       <div style={{ width: '3px', height: '14px', background: accent, borderRadius: '1px', boxShadow: `0 0 6px ${accent}` }} />
@@ -72,9 +76,9 @@ function SectionHeader({ title, accent = '#00FF66' }) {
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '#000000', border: '1px solid rgba(0, 255, 102, 0.3)', borderRadius: '2px', padding: '6px 10px', fontSize: '11px', fontFamily: "'Share Tech Mono', monospace" }}>
+    <div style={{ background: '#000000', border: '1px solid var(--accent-dim)', borderRadius: '2px', padding: '6px 10px', fontSize: '11px', fontFamily: "'Share Tech Mono', monospace" }}>
       <p style={{ color: '#64748B', marginBottom: '2px' }}>{label.toUpperCase()}</p>
-      <p style={{ color: '#00FF66', fontWeight: 'bold' }}>{payload[0].value?.toFixed?.(1) ?? payload[0].value}</p>
+      <p style={{ color: 'var(--accent-color)', fontWeight: 'bold' }}>{payload[0].value?.toFixed?.(1) ?? payload[0].value}</p>
     </div>
   );
 };
@@ -116,19 +120,21 @@ function TerminalConsole() {
       flex: 1, 
       display: 'flex', 
       flexDirection: 'column', 
-      background: '#000000', 
-      border: '1px solid rgba(0, 255, 102, 0.25)', 
+      background: 'rgba(0, 0, 0, 0.2)', 
+      backdropFilter: 'blur(2px)',
+      WebkitBackdropFilter: 'blur(2px)',
+      border: '1px solid var(--accent-dim)', 
       borderRadius: '2px', 
       padding: '16px', 
       fontFamily: "'Share Tech Mono', 'JetBrains Mono', monospace", 
       fontSize: '10px', 
       overflowY: 'hidden', 
-      color: '#00FF66', 
-      boxShadow: 'inset 0 0 15px rgba(0, 255, 102, 0.03)' 
+      color: 'var(--accent-color)', 
+      boxShadow: 'inset 0 0 15px var(--accent-glow)' 
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(0, 255, 102, 0.15)', paddingBottom: '6px', marginBottom: '10px', color: '#475569' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--accent-dim)', paddingBottom: '6px', marginBottom: '10px', color: '#475569' }}>
         <span>📡 TELEMETRY ENGINE LOGS</span>
-        <span style={{ animation: 'pulse 1.2s infinite', color: '#00FF66' }}>● RUNNING</span>
+        <span style={{ animation: 'pulse 1.2s infinite', color: 'var(--accent-color)' }}>● RUNNING</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', height: '100%', scrollbarWidth: 'none' }}>
         {logs.map((log, i) => (
@@ -137,7 +143,7 @@ function TerminalConsole() {
             initial={{ opacity: 0, x: -5 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.15 }}
-            style={{ color: i === logs.length - 1 ? '#FFFFFF' : '#00FF66' }}
+            style={{ color: i === logs.length - 1 ? '#FFFFFF' : 'var(--accent-color)' }}
           >
             {log}
           </motion.div>
@@ -165,12 +171,12 @@ export default function TelemetryPanel() {
     count,
   }));
 
-  // Map classes to cybernetic HUD greens and limes
+  // Map detected classes to ISRO brand colors (saffron and blues)
   const CLASS_COLORS_MAP = {
-    Vehicle: '#00FF66',     // Neon Green
-    Building: '#00D655',    // Medium Green
-    Road: '#00993D',        // Dark Green
-    Vegetation: '#80FF00',  // Lime Green
+    Vehicle: '#F26522',     // Saffron Orange
+    Building: '#0082C8',    // ISRO Blue
+    Road: '#005E99',        // Dark Blue
+    Vegetation: '#FFA24D',  // Soft Saffron/Orange
   };
 
   const containerVariants = {
@@ -189,11 +195,11 @@ export default function TelemetryPanel() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '16px', overflowY: 'auto', height: '100%', background: '#000000' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '16px', overflowY: 'auto', height: '100%', background: 'transparent' }}>
       {isProcessing && <TerminalConsole />}
       
       {!hasData && !isProcessing && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', color: 'rgba(0, 255, 102, 0.15)' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', color: 'var(--accent-dim)' }}>
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
             <circle cx="12" cy="12" r="10" />
             <path d="M12 6v6l4 2" />
@@ -212,30 +218,30 @@ export default function TelemetryPanel() {
           <motion.section variants={itemVariants}>
             <SectionHeader title="QUALITY MATRIX METRICS" />
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-              <MetricCard label="PSNR ENHANCED" value={metrics?.psnr_enhanced} unit="dB" color="#00FF66" subtitle="vs IR baseline (SR)" decimals={2} />
-              <MetricCard label="PSNR COLORIZED" value={metrics?.psnr_colorized} unit="dB" color="#00D655" subtitle="vs IR baseline (RGB)" decimals={2} />
+              <MetricCard label="PSNR ENHANCED" value={metrics?.psnr_enhanced} unit="dB" color="var(--accent-color)" subtitle="vs IR baseline (SR)" decimals={2} />
+              <MetricCard label="PSNR COLORIZED" value={metrics?.psnr_colorized} unit="dB" color="var(--accent-color)" subtitle="vs IR baseline (RGB)" decimals={2} />
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <MetricCard label="SSIM COLORIZED" value={metrics?.ssim_colorized} color="#00FF66" subtitle="structural similarity (↑ better)" decimals={4} />
-              <MetricCard label="LPIPS COLORIZED" value={metrics?.lpips_colorized} color="#80FF00" subtitle="perceptual distance (↓ better)" decimals={4} />
+              <MetricCard label="SSIM COLORIZED" value={metrics?.ssim_colorized} color="var(--accent-color)" subtitle="structural similarity (↑ better)" decimals={4} />
+              <MetricCard label="LPIPS COLORIZED" value={metrics?.lpips_colorized} color="var(--accent-color)" subtitle="perceptual distance (↓ better)" decimals={4} />
             </div>
           </motion.section>
 
           <motion.section variants={itemVariants}>
-            <SectionHeader title="DETECTION SHIELD RESULTS" accent="#00D655" />
+            <SectionHeader title="DETECTION SHIELD RESULTS" accent="var(--accent-color)" />
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
               <MetricCard label="TOTAL IDENTIFIED" value={detections.length} color="#FFFFFF" decimals={0} />
-              <MetricCard label="DETECTION MODE" value={hasData ? 1 : null} color="#00FF66" subtitle={hasData ? 'YOLO-W OPEN-VOCAB' : ''} decimals={0} />
+              <MetricCard label="DETECTION MODE" value={hasData ? 1 : null} color="var(--accent-color)" subtitle={hasData ? 'YOLO-W OPEN-VOCAB' : ''} decimals={0} />
             </div>
             {detectionData.length > 0 && (
-              <div style={{ background: '#000000', border: '1px solid rgba(0, 255, 102, 0.25)', borderRadius: '2px', padding: '12px 10px' }}>
+              <div style={{ background: 'rgba(0, 0, 0, 0.45)', border: '1px solid var(--accent-dim)', borderRadius: '2px', padding: '12px 10px' }}>
                 <ResponsiveContainer width="100%" height={100}>
                   <BarChart data={detectionData} margin={{ top: 0, right: 8, bottom: 0, left: -20 }}>
                     <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#475569', fontFamily: 'Share Tech Mono' }} />
                     <YAxis tick={{ fontSize: 9, fill: '#475569', fontFamily: 'Share Tech Mono' }} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="count" radius={[2, 2, 0, 0]}>
-                      {detectionData.map((d) => (<Cell key={d.label} fill={CLASS_COLORS_MAP[d.label] || '#00FF66'} />))}
+                      {detectionData.map((d) => (<Cell key={d.label} fill={CLASS_COLORS_MAP[d.label] || 'var(--accent-color)'} />))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -246,7 +252,7 @@ export default function TelemetryPanel() {
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
                 {detectionData.map((d) => {
                   const labelLower = d.label.toLowerCase();
-                  const color = CLASS_COLORS_MAP[d.label] || '#00FF66';
+                  const color = CLASS_COLORS_MAP[d.label] || 'var(--accent-color)';
                   const isHighlighted = hoveredClass === labelLower;
                   return (
                     <motion.div
@@ -255,13 +261,13 @@ export default function TelemetryPanel() {
                       onMouseLeave={() => setHoveredClass(null)}
                       whileHover={{ scale: 1.03 }}
                       animate={{
-                        borderColor: isHighlighted ? color : 'rgba(0, 255, 102, 0.2)',
+                        borderColor: isHighlighted ? color : 'var(--accent-dim)',
                         boxShadow: isHighlighted ? `0 0 10px ${color}33` : 'none',
-                        background: isHighlighted ? `${color}11` : '#000000',
+                        background: isHighlighted ? `${color}11` : 'rgba(0, 0, 0, 0.2)',
                       }}
                       style={{
                         flex: '1 1 calc(50% - 4px)',
-                        border: '1px solid rgba(0, 255, 102, 0.2)',
+                        border: '1px solid var(--accent-dim)',
                         borderRadius: '2px',
                         padding: '8px 12px',
                         cursor: 'pointer',
@@ -284,31 +290,31 @@ export default function TelemetryPanel() {
           </motion.section>
 
           <motion.section variants={itemVariants}>
-            <SectionHeader title="PROCESSING LATENCY CORES" accent="#00FF66" />
+            <SectionHeader title="PROCESSING LATENCY CORES" accent="var(--accent-color)" />
             {latency && (
               <>
-                <div style={{ background: '#000000', border: '1px solid rgba(0, 255, 102, 0.25)', borderRadius: '2px', padding: '12px 10px' }}>
+                <div style={{ background: 'rgba(0, 0, 0, 0.2)', border: '1px solid var(--accent-dim)', borderRadius: '2px', padding: '12px 10px' }}>
                   <ResponsiveContainer width="100%" height={90}>
                     <BarChart data={latencyData} layout="vertical" margin={{ top: 0, right: 40, bottom: 0, left: 0 }}>
                       <XAxis type="number" tick={{ fontSize: 9, fill: '#475569', fontFamily: 'Share Tech Mono' }} unit="ms" />
                       <YAxis dataKey="stage" type="category" width={28} tick={{ fontSize: 9, fill: '#475569', fontFamily: 'Share Tech Mono' }} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="ms" fill="#00FF66" radius={[0, 2, 2, 0]} opacity={0.8} />
+                      <Bar dataKey="ms" fill="var(--accent-color)" radius={[0, 2, 2, 0]} opacity={0.8} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
                 <div style={{ 
                   marginTop: '8px', 
                   padding: '8px 12px', 
-                  background: 'rgba(0, 255, 102, 0.05)', 
-                  border: '1px solid rgba(0, 255, 102, 0.25)', 
+                  background: 'var(--accent-glow)', 
+                  border: '1px solid var(--accent-dim)', 
                   borderRadius: '2px', 
                   display: 'flex', 
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
                   <span style={{ fontSize: '10px', color: '#FFFFFF', fontWeight: 600, letterSpacing: '0.05em' }}>TOTAL PIPELINE COMPUTATION</span>
-                  <span style={{ fontSize: '13px', color: '#00FF66', fontWeight: 800, fontFamily: "'Orbitron', sans-serif" }}>
+                  <span style={{ fontSize: '13px', color: 'var(--accent-color)', fontWeight: 800, fontFamily: "'Orbitron', sans-serif" }}>
                     <AnimatedNumber value={latency.total_ms} decimals={0} /> ms
                   </span>
                 </div>

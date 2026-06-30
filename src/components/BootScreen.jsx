@@ -58,7 +58,7 @@ export default function BootScreen({ onComplete }) {
         alignItems: 'center',
         justifyContent: 'center',
         fontFamily: "'Share Tech Mono', 'JetBrains Mono', monospace",
-        color: '#00FF66',
+        color: '#0082C8', // ISRO Azure Blue
         overflow: 'hidden',
         userSelect: 'none',
       }}
@@ -71,8 +71,8 @@ export default function BootScreen({ onComplete }) {
           left: 0,
           right: 0,
           height: '4px',
-          background: 'linear-gradient(to bottom, transparent, rgba(0, 255, 102, 0.25), transparent)',
-          boxShadow: '0 0 10px rgba(0, 255, 102, 0.4)',
+          background: 'linear-gradient(to bottom, transparent, rgba(0, 130, 200, 0.25), transparent)',
+          boxShadow: '0 0 10px rgba(0, 130, 200, 0.4)',
           pointerEvents: 'none',
           zIndex: 2,
         }}
@@ -83,7 +83,7 @@ export default function BootScreen({ onComplete }) {
         style={{
           position: 'absolute',
           inset: 0,
-          backgroundImage: 'linear-gradient(rgba(0, 255, 102, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 102, 0.02) 1px, transparent 1px)',
+          backgroundImage: 'linear-gradient(rgba(0, 130, 200, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 130, 200, 0.02) 1px, transparent 1px)',
           backgroundSize: '40px 40px',
           opacity: 0.8,
           pointerEvents: 'none',
@@ -98,23 +98,23 @@ export default function BootScreen({ onComplete }) {
             cx="50"
             cy="50"
             r="44"
-            stroke="rgba(0, 255, 102, 0.06)"
+            stroke="rgba(0, 130, 200, 0.1)"
             strokeWidth="1.5"
             fill="none"
           />
-          {/* Progress Circle */}
+          {/* Progress Circle (ISRO Saffron Orange) */}
           <circle
             cx="50"
             cy="50"
             r="44"
-            stroke="#00FF66"
+            stroke="#F26522"
             strokeWidth="2"
             fill="none"
             strokeDasharray={strokeCircumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
             style={{
-              filter: 'drop-shadow(0 0 4px rgba(0, 255, 102, 0.6))',
+              filter: 'drop-shadow(0 0 4px rgba(242, 101, 34, 0.6))',
               transition: 'stroke-dashoffset 0.1s linear'
             }}
           />
@@ -128,11 +128,11 @@ export default function BootScreen({ onComplete }) {
             fontWeight: 'bold', 
             color: '#FFFFFF',
             fontFamily: "'Orbitron', sans-serif",
-            textShadow: '0 0 15px rgba(0, 255, 102, 0.4)',
+            textShadow: '0 0 15px rgba(0, 130, 200, 0.4)',
             letterSpacing: '0.05em'
           }}
         >
-          {percent}<span style={{ fontSize: '14px', color: '#00FF66', marginLeft: '2px' }}>%</span>
+          {percent}<span style={{ fontSize: '14px', color: '#F26522', marginLeft: '2px' }}>%</span>
         </div>
       </div>
 
@@ -150,7 +150,7 @@ export default function BootScreen({ onComplete }) {
         >
           NishaDrishtiAI INIT SEQUENCE
         </div>
-        <div style={{ fontSize: '9px', color: 'rgba(0, 255, 102, 0.65)', letterSpacing: '0.15em' }}>
+        <div style={{ fontSize: '9px', color: 'rgba(0, 130, 200, 0.65)', letterSpacing: '0.15em' }}>
           LOADING INFRARED SENSOR ENGINES...
         </div>
       </div>

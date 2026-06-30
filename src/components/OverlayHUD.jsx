@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 import useAppStore from '../store/useAppStore';
 
 const CLASS_COLORS_MAP = {
-  vehicle: '#00FF66',
-  building: '#00D655',
-  road: '#00993D',
-  vegetation: '#80FF00',
+  vehicle: '#F26522',     // ISRO Saffron Orange
+  building: '#0082C8',    // ISRO Blue
+  road: '#005E99',        // Dark Blue
+  vegetation: '#FFA24D',  // Soft Saffron/Orange
 };
 
 export default function OverlayHUD({ imageRef }) {
@@ -148,13 +148,13 @@ export default function OverlayHUD({ imageRef }) {
               height={h}
               stroke={color}
               strokeWidth="1"
-              fill="rgba(0, 255, 102, 0.01)"
+              fill="rgba(0, 130, 200, 0.01)" // Transparent Azure Blue
               style={{ pointerEvents: 'auto', cursor: 'pointer' }}
               initial={{ opacity: 0 }}
               animate={{ 
                 opacity: isHovered ? 1 : 0.6,
                 strokeWidth: isHovered ? 2 : 1,
-                fill: isHovered ? `${color}20` : 'rgba(0, 255, 102, 0.01)',
+                fill: isHovered ? `${color}20` : 'rgba(0, 130, 200, 0.01)',
                 filter: isHovered ? `drop-shadow(0 0 6px ${color})` : 'none'
               }}
               whileHover={{
@@ -184,12 +184,15 @@ export default function OverlayHUD({ imageRef }) {
             <text
               x={left + 4}
               y={top - 3}
-              fill="#060B14"
-              fontSize="8px"
-              fontFamily="JetBrains Mono"
-              fontWeight="bold"
+              fill="#FFFFFF"
+              style={{ 
+                fontSize: '9px', 
+                fontFamily: "'Share Tech Mono', monospace", 
+                fontWeight: 'bold', 
+                letterSpacing: '0.05em' 
+              }}
             >
-              {det.label.toUpperCase()} {(det.confidence * 100).toFixed(0)}%
+              {det.label.toUpperCase()}
             </text>
           </g>
         );

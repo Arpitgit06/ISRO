@@ -15,8 +15,8 @@ function Header({ health, devicesInfo, onDeviceChange, deviceChanging }) {
   const device = health?.device || 'unknown';
   const isGpu = device !== 'cpu' && device !== 'unknown';
   const isCuda = device.startsWith('cuda');
-  const deviceColor = '#00FF66';
-  const deviceBorder = 'rgba(0, 255, 102, 0.4)';
+  const deviceColor = 'var(--accent-color)';
+  const deviceBorder = 'var(--accent-dim)';
 
   return (
     <header style={{ 
@@ -24,35 +24,37 @@ function Header({ health, devicesInfo, onDeviceChange, deviceChanging }) {
       alignItems: 'center', 
       padding: '0 20px', 
       height: '56px', 
-      background: '#000000', 
-      borderBottom: '1px solid rgba(0, 255, 102, 0.25)', 
+      background: 'rgba(0, 0, 0, 0.25)', 
+      backdropFilter: 'blur(2px)',
+      WebkitBackdropFilter: 'blur(2px)',
+      borderBottom: '1px solid var(--accent-dim)', 
       flexShrink: 0, 
       gap: '16px',
       fontFamily: "'Share Tech Mono', monospace"
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         {/* NishaDrishti Eye/Satellite logo */}
-        <svg width="34" height="34" viewBox="0 0 100 100" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 255, 102, 0.5))' }}>
+        <svg width="34" height="34" viewBox="0 0 100 100" style={{ filter: 'drop-shadow(0 0 5px var(--accent-glow))' }}>
           {/* Outer circle / Lens body */}
-          <circle cx="50" cy="50" r="38" stroke="#00FF66" strokeWidth="3" fill="none" />
+          <circle cx="50" cy="50" r="38" stroke="var(--accent-color)" strokeWidth="3" fill="none" />
           {/* Eye iris / Camera aperture blades */}
-          <path d="M 50 12 L 72 35 L 50 58 L 28 35 Z" fill="none" stroke="#00FF66" strokeWidth="1.5" opacity="0.8" />
-          <path d="M 50 88 L 72 65 L 50 42 L 28 65 Z" fill="none" stroke="#00FF66" strokeWidth="1.5" opacity="0.8" />
+          <path d="M 50 12 L 72 35 L 50 58 L 28 35 Z" fill="none" stroke="var(--accent-color)" strokeWidth="1.5" opacity="0.8" />
+          <path d="M 50 88 L 72 65 L 50 42 L 28 65 Z" fill="none" stroke="var(--accent-color)" strokeWidth="1.5" opacity="0.8" />
           {/* Center glowing pupil / thermal sensor node */}
-          <circle cx="50" cy="50" r="10" fill="#00FF66" />
+          <circle cx="50" cy="50" r="10" fill="var(--accent-color)" />
           {/* Horizontal satellite sensor wings */}
-          <line x1="5" y1="50" x2="20" y2="50" stroke="#00FF66" strokeWidth="4" />
-          <line x1="80" y1="50" x2="95" y2="50" stroke="#00FF66" strokeWidth="4" />
+          <line x1="5" y1="50" x2="20" y2="50" stroke="var(--accent-color)" strokeWidth="4" />
+          <line x1="80" y1="50" x2="95" y2="50" stroke="var(--accent-color)" strokeWidth="4" />
           {/* Target crosshair markers */}
-          <line x1="50" y1="5" x2="50" y2="15" stroke="#00FF66" strokeWidth="3" />
-          <line x1="50" y1="85" x2="50" y2="95" stroke="#00FF66" strokeWidth="3" />
+          <line x1="50" y1="5" x2="50" y2="15" stroke="var(--accent-color)" strokeWidth="3" />
+          <line x1="50" y1="85" x2="50" y2="95" stroke="var(--accent-color)" strokeWidth="3" />
         </svg>
         <div>
           <div style={{ fontSize: '15px', fontWeight: 900, color: '#FFFFFF', letterSpacing: '0.15em', fontFamily: "'Orbitron', sans-serif" }}>NishaDrishtiAI</div>
-          <div style={{ fontSize: '8px', color: '#00FF66', letterSpacing: '0.1em' }}>IR SENSOR COLORIZATION & ENHANCEMENT CONSOLE</div>
+          <div style={{ fontSize: '8px', color: 'var(--accent-color)', letterSpacing: '0.1em' }}>IR SENSOR COLORIZATION & ENHANCEMENT CONSOLE</div>
         </div>
       </div>
-      <div style={{ width: '1px', height: '30px', background: 'rgba(0, 255, 102, 0.25)' }} />
+      <div style={{ width: '1px', height: '30px', background: 'var(--accent-dim)' }} />
       <div style={{ fontSize: '10px', color: '#475569', letterSpacing: '0.05em' }}>BHARATIYA ANTARIKSH SYSTEM</div>
       
       <div style={{ flex: 1 }} />
@@ -62,8 +64,8 @@ function Header({ health, devicesInfo, onDeviceChange, deviceChanging }) {
           fontSize: '10px', 
           color: '#E2E8F0', 
           padding: '3px 10px', 
-          background: 'rgba(0, 255, 102, 0.05)', 
-          border: '1px solid rgba(0, 255, 102, 0.3)', 
+          background: 'var(--accent-glow)', 
+          border: '1px solid var(--accent-dim)', 
           borderRadius: '2px',
           letterSpacing: '0.05em'
         }}>
@@ -76,20 +78,20 @@ function Header({ health, devicesInfo, onDeviceChange, deviceChanging }) {
         alignItems: 'center', 
         gap: '6px', 
         fontSize: '9px', 
-        color: health?.engine_ready ? '#00FF66' : '#475569', 
+        color: health?.engine_ready ? 'var(--accent-color)' : '#475569', 
         padding: '4px 12px', 
-        border: `1px solid ${health?.engine_ready ? '#00FF66' : 'rgba(0, 255, 102, 0.15)'}`, 
+        border: `1px solid ${health?.engine_ready ? 'var(--accent-color)' : 'var(--accent-glow)'}`, 
         borderRadius: '2px', 
-        background: health?.engine_ready ? 'rgba(0, 255, 102, 0.05)' : 'transparent',
-        boxShadow: health?.engine_ready ? '0 0 10px rgba(0, 255, 102, 0.15)' : 'none',
+        background: health?.engine_ready ? 'var(--accent-glow)' : 'transparent',
+        boxShadow: health?.engine_ready ? '0 0 10px var(--accent-glow)' : 'none',
         letterSpacing: '0.08em'
       }}>
         <span style={{ 
           width: '6px', 
           height: '6px', 
           borderRadius: '50%', 
-          background: health?.engine_ready ? '#00FF66' : '#334155',
-          boxShadow: health?.engine_ready ? '0 0 6px #00FF66' : 'none'
+          background: health?.engine_ready ? 'var(--accent-color)' : '#334155',
+          boxShadow: health?.engine_ready ? '0 0 6px var(--accent-color)' : 'none'
         }} />
         {health?.engine_ready ? 'ENGINE READY' : 'ENGINE LOADING'}
       </div>
@@ -112,7 +114,7 @@ function Header({ health, devicesInfo, onDeviceChange, deviceChanging }) {
               cursor: deviceChanging ? 'not-allowed' : 'pointer',
               outline: 'none',
               appearance: 'none',
-              backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(0,255,102,0.8)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+              backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(0,130,200,0.8)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
               backgroundRepeat: 'no-repeat',
               backgroundPosition: 'right 8px center',
               backgroundSize: '10px',
@@ -137,7 +139,7 @@ function Header({ health, devicesInfo, onDeviceChange, deviceChanging }) {
             border: `1px solid ${deviceBorder}`, 
             borderRadius: '2px',
             letterSpacing: '0.08em',
-            boxShadow: '0 0 6px rgba(0, 255, 102, 0.1)'
+            boxShadow: '0 0 6px var(--accent-glow)'
           }}>
             {health?.device_label?.toUpperCase() || device.toUpperCase()}
           </span>
@@ -171,6 +173,7 @@ export default function Dashboard() {
   useEffect(() => {
     pollHealth();
     loadDevices();
+
     const healthId = setInterval(pollHealth, 5000);
     const devicesId = setInterval(loadDevices, 10000);
     return () => {
@@ -205,6 +208,53 @@ export default function Dashboard() {
       cancelAnimationFrame(animId);
     };
   }, []);
+
+  useEffect(() => {
+    let themeColor = '#0082C8';
+    let themeColorDim = 'rgba(0, 130, 200, 0.25)';
+    let themeColorGlow = 'rgba(0, 130, 200, 0.15)';
+
+    if (scrollProgress <= 0.20) {
+      // Stage 0: Galaxy (deep celestial blue)
+      themeColor = '#3A86FF';
+      themeColorDim = 'rgba(58, 134, 255, 0.25)';
+      themeColorGlow = 'rgba(58, 134, 255, 0.15)';
+    } else if (scrollProgress <= 0.40) {
+      // Galaxy -> Blackhole transition
+      const t = (scrollProgress - 0.20) / 0.20;
+      // Lerp from celestial blue (58, 134, 255) to accretion disk orange (255, 94, 0)
+      const r = Math.round(58.0 + (255.0 - 58.0) * t);
+      const g = Math.round(134.0 + (94.0 - 134.0) * t);
+      const b = Math.round(255.0 + (0.0 - 255.0) * t);
+      themeColor = `rgb(${r}, ${g}, ${b})`;
+      themeColorDim = `rgba(${r}, ${g}, ${b}, 0.25)`;
+      themeColorGlow = `rgba(${r}, ${g}, ${b}, 0.15)`;
+    } else if (scrollProgress <= 0.60) {
+      // Stage 1: Blackhole (fiery accretion disk orange)
+      themeColor = '#FF5E00';
+      themeColorDim = 'rgba(255, 94, 0, 0.25)';
+      themeColorGlow = 'rgba(255, 94, 0, 0.15)';
+    } else if (scrollProgress <= 0.80) {
+      // Stage 2: Supernova (relativistic red-orange to rings/terrain ISRO blue)
+      const t = (scrollProgress - 0.60) / 0.20;
+      // Lerp from fireball red (255, 45, 0) to ISRO blue (0, 130, 200)
+      const r = Math.round(255.0 + (0.0 - 255.0) * t);
+      const g = Math.round(45.0 + (130.0 - 45.0) * t);
+      const b = Math.round(0.0 + (200.0 - 0.0) * t);
+      themeColor = `rgb(${r}, ${g}, ${b})`;
+      themeColorDim = `rgba(${r}, ${g}, ${b}, 0.25)`;
+      themeColorGlow = `rgba(${r}, ${g}, ${b}, 0.15)`;
+    } else {
+      // Stage 3 & 4: rings / terrain (ISRO blue)
+      themeColor = '#0082C8';
+      themeColorDim = 'rgba(0, 130, 200, 0.25)';
+      themeColorGlow = 'rgba(0, 130, 200, 0.15)';
+    }
+
+    document.documentElement.style.setProperty('--accent-color', themeColor);
+    document.documentElement.style.setProperty('--accent-dim', themeColorDim);
+    document.documentElement.style.setProperty('--accent-glow', themeColorGlow);
+  }, [scrollProgress]);
 
   const handleDeviceChange = async (newDeviceId) => {
     setDeviceChanging(true);
@@ -314,7 +364,7 @@ export default function Dashboard() {
                 color: '#FFFFFF', 
                 fontFamily: "'Orbitron', sans-serif", 
                 letterSpacing: '0.3em',
-                textShadow: '0 0 25px rgba(0, 255, 102, 0.65)',
+                textShadow: '0 0 25px var(--accent-color)',
                 margin: '0 0 16px 0',
                 transform: `translateY(${-scrollProgress * 150}px)`
               }}>
@@ -322,10 +372,10 @@ export default function Dashboard() {
               </h1>
               <p style={{ 
                 fontSize: '12px', 
-                color: '#00FF66', 
+                color: 'var(--accent-color)', 
                 letterSpacing: '0.25em', 
                 textTransform: 'uppercase',
-                textShadow: '0 0 10px rgba(0, 255, 102, 0.4)',
+                textShadow: '0 0 10px var(--accent-glow)',
                 transform: `translateY(${-scrollProgress * 80}px)`,
                 marginBottom: '16px',
                 fontWeight: 'bold',
@@ -408,8 +458,8 @@ export default function Dashboard() {
                       fontWeight: 900, 
                       letterSpacing: '0.1em', 
                       fontFamily: "'Orbitron', sans-serif", 
-                      color: '#00FF66',
-                      textShadow: '0 0 15px rgba(0, 255, 102, 0.3)',
+                      color: 'var(--accent-color)',
+                      textShadow: '0 0 15px var(--accent-glow)',
                       marginBottom: '10px'
                     }}>
                       Three views. One console. One clock.
@@ -436,8 +486,8 @@ export default function Dashboard() {
                 overflow: 'hidden', 
                 position: 'relative',
                 pointerEvents: consoleOpacity > 0.05 ? 'auto' : 'none',
-                background: 'rgba(0,0,0,0.85)',
-                borderTop: '1px solid rgba(0, 255, 102, 0.15)'
+                background: 'rgba(0, 0, 0, 0.1)',
+                borderTop: '1px solid var(--accent-dim)'
               }}
             >
               <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
@@ -447,9 +497,9 @@ export default function Dashboard() {
                   flex: '0 0 60%', 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  borderRight: '1px solid rgba(0, 255, 102, 0.25)', 
+                  borderRight: '1px solid var(--accent-dim)', 
                   overflow: 'hidden',
-                  background: '#000000'
+                  background: 'transparent'
                 }}>
                   {hasResults ? <ImageSlider /> : <UploadZone />}
                 </div>
@@ -459,7 +509,7 @@ export default function Dashboard() {
                   flex: '0 0 40%', 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  background: '#000000', 
+                  background: 'transparent', 
                   overflow: 'hidden' 
                 }}>
                   <TelemetryPanel />

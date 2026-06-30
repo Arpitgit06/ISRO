@@ -61,17 +61,19 @@ export default function UploadZone() {
   // Display processing state
   if (selectedFile && isProcessing) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '480px', padding: '24px', background: '#000000' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '480px', padding: '24px', background: 'transparent' }}>
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 100, damping: 15 }}
           style={{
             width: '100%', maxWidth: '880px',
-            border: '1px solid rgba(0, 255, 102, 0.25)',
+            border: '1px solid var(--accent-dim)',
             borderRadius: '2px',
-            background: 'rgba(0, 0, 0, 0.9)',
-            boxShadow: '0 0 30px rgba(0, 255, 102, 0.05)',
+            background: 'rgba(0, 0, 0, 0.2)',
+            backdropFilter: 'blur(2px)',
+            WebkitBackdropFilter: 'blur(2px)',
+            boxShadow: '0 0 30px var(--accent-glow)',
             padding: '28px',
             display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '32px',
             alignItems: 'center', justifyContent: 'center',
@@ -81,9 +83,9 @@ export default function UploadZone() {
           {/* Left Column: Image scan state & progress */}
           <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
             {previewUrl ? (
-              <div style={{ position: 'relative', width: '100%', maxWidth: '280px', height: '170px', border: '1px solid rgba(0, 255, 102, 0.4)', borderRadius: '2px', overflow: 'hidden', boxShadow: '0 0 15px rgba(0, 255, 102, 0.1)' }}>
+              <div style={{ position: 'relative', width: '100%', maxWidth: '280px', height: '170px', border: '1px solid var(--accent-dim)', borderRadius: '2px', overflow: 'hidden', boxShadow: '0 0 15px var(--accent-glow)' }}>
                 <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.65 }} />
-                {/* Scan laser effect (Cyber green) */}
+                {/* Scan laser effect (Dynamic theme color) */}
                 <motion.div
                   animate={{ top: ['0%', '100%'] }}
                   transition={{ repeat: Infinity, repeatType: 'reverse', duration: 1.6, ease: 'easeInOut' }}
@@ -92,16 +94,16 @@ export default function UploadZone() {
                     left: 0,
                     right: 0,
                     height: '2px',
-                    background: 'linear-gradient(to right, transparent, #00FF66, transparent)',
-                    boxShadow: '0 0 8px #00FF66',
+                    background: 'linear-gradient(to right, transparent, var(--accent-color), transparent)',
+                    boxShadow: '0 0 8px var(--accent-color)',
                   }}
                 />
                 {/* Grid overlay */}
-                <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(0, 255, 102, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 102, 0.05) 1px, transparent 1px)', backgroundSize: '15px 15px', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(var(--accent-glow) 1px, transparent 1px), linear-gradient(90deg, var(--accent-glow) 1px, transparent 1px)', backgroundSize: '15px 15px', pointerEvents: 'none' }} />
               </div>
             ) : (
-              <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(0, 255, 102, 0.06)', border: '1px solid rgba(0, 255, 102, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00FF66" strokeWidth="1.5">
+              <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'var(--accent-glow)', border: '1px solid var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="1.5">
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                 </svg>
               </div>
@@ -119,24 +121,24 @@ export default function UploadZone() {
             <div style={{ width: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: 700, color: '#64748B', marginBottom: '6px', letterSpacing: '0.05em' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00FF66', display: 'inline-block', animation: 'pulse 1.2s infinite' }} />
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-color)', display: 'inline-block', animation: 'pulse 1.2s infinite' }} />
                   UPLOADING / INFERENCE RUNNING
                 </span>
-                <span style={{ color: '#00FF66' }}>{uploadProgress}%</span>
+                <span style={{ color: 'var(--accent-color)' }}>{uploadProgress}%</span>
               </div>
-              <div style={{ height: '4px', background: '#111111', border: '1px solid rgba(0, 255, 102, 0.15)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{ height: '4px', background: '#111111', border: '1px solid var(--accent-dim)', borderRadius: '2px', overflow: 'hidden' }}>
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${uploadProgress}%` }}
                   transition={{ duration: 0.1 }}
-                  style={{ height: '100%', background: 'linear-gradient(90deg, #00FF66, #00E65C)', boxShadow: '0 0 6px rgba(0, 255, 102, 0.4)' }} 
+                  style={{ height: '100%', background: 'linear-gradient(90deg, var(--accent-color), var(--accent-dim))', boxShadow: '0 0 6px var(--accent-color)' }} 
                 />
               </div>
             </div>
           </div>
 
           {/* Right Column: Live Pipeline Node Graph */}
-          <div style={{ flex: '1.2 1 340px', borderLeft: '1px solid rgba(0, 255, 102, 0.15)', paddingLeft: '24px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: '1.2 1 340px', borderLeft: '1px solid var(--accent-dim)', paddingLeft: '24px', display: 'flex', flexDirection: 'column' }}>
             <PipelineWireframe uploadProgress={uploadProgress} isProcessing={isProcessing} />
           </div>
         </motion.div>
@@ -147,16 +149,18 @@ export default function UploadZone() {
   // Display file selected state (Before processing starts)
   if (selectedFile && !isProcessing) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '420px', padding: '24px', background: '#000000' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '420px', padding: '24px', background: 'transparent' }}>
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 120, damping: 18 }}
           style={{
             width: '100%', maxWidth: '520px',
-            border: '1px solid rgba(0, 255, 102, 0.25)',
+            border: '1px solid var(--accent-dim)',
             borderRadius: '2px',
-            background: 'rgba(0,0,0,0.85)',
+            background: 'rgba(0,0,0,0.2)',
+            backdropFilter: 'blur(2px)',
+            WebkitBackdropFilter: 'blur(2px)',
             padding: '40px 24px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px',
             boxShadow: '0 0 25px rgba(0, 0, 0, 0.5)',
@@ -164,13 +168,13 @@ export default function UploadZone() {
           }}
         >
           {previewUrl ? (
-            <div style={{ position: 'relative', width: '240px', height: '150px', border: '1px solid rgba(0, 255, 102, 0.4)', borderRadius: '2px', overflow: 'hidden', boxShadow: '0 0 15px rgba(0, 255, 102, 0.1)' }}>
+            <div style={{ position: 'relative', width: '240px', height: '150px', border: '1px solid var(--accent-dim)', borderRadius: '2px', overflow: 'hidden', boxShadow: '0 0 15px var(--accent-glow)' }}>
               <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0, 255, 102, 0.05)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'var(--accent-glow)', pointerEvents: 'none' }} />
             </div>
           ) : (
-            <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(0, 255, 102, 0.05)', border: '1px solid rgba(0, 255, 102, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00FF66" strokeWidth="1.5">
+            <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'var(--accent-glow)', border: '1px solid var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="1.5">
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
                 <line x1="16" y1="13" x2="8" y2="13" />
@@ -190,14 +194,14 @@ export default function UploadZone() {
           
           <div style={{ display: 'flex', gap: '12px', width: '100%', justifyContent: 'center' }}>
             <motion.button 
-              whileHover={{ scale: 1.04, borderColor: '#00FF66', color: '#FFFFFF' }}
+              whileHover={{ scale: 1.04, borderColor: 'var(--accent-color)', color: '#FFFFFF' }}
               whileTap={{ scale: 0.96 }}
               onClick={handleCancel}
               style={{ 
                 padding: '10px 24px', 
                 background: 'transparent', 
                 color: '#94A3B8', 
-                border: '1px solid rgba(0, 255, 102, 0.3)', 
+                border: '1px solid var(--accent-dim)', 
                 borderRadius: '2px', 
                 fontWeight: 600, 
                 fontSize: '12px', 
@@ -209,13 +213,13 @@ export default function UploadZone() {
               CANCEL
             </motion.button>
             <motion.button 
-              whileHover={{ scale: 1.04, boxShadow: '0 0 15px rgba(0, 255, 102, 0.4)', background: '#00E65C' }}
+              whileHover={{ scale: 1.04, boxShadow: '0 0 15px rgba(242, 101, 34, 0.45)', background: '#FF7733' }}
               whileTap={{ scale: 0.96 }}
               onClick={handleProcess}
               style={{ 
                 padding: '10px 28px', 
-                background: '#00FF66', 
-                color: '#000000', 
+                background: '#F26522', // ISRO Saffron
+                color: '#FFFFFF', 
                 border: 'none', 
                 borderRadius: '2px', 
                 fontWeight: 700, 
@@ -236,18 +240,20 @@ export default function UploadZone() {
 
   // Display empty dropzone (Default)
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '420px', padding: '24px', background: '#000000' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '420px', padding: '24px', background: 'transparent' }}>
       <motion.div
         onClick={() => !isProcessing && inputRef.current?.click()}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
-        whileHover={isProcessing ? {} : { scale: 1.02, borderColor: '#00FF66', boxShadow: '0 0 25px rgba(0, 255, 102, 0.12)' }}
+        whileHover={isProcessing ? {} : { scale: 1.02, borderColor: 'var(--accent-color)', boxShadow: '0 0 25px var(--accent-glow)' }}
         style={{
           width: '100%', maxWidth: '520px',
-          border: `2px dashed ${dragging ? '#00FF66' : 'rgba(0, 255, 102, 0.25)'}`,
+          border: `2px dashed ${dragging ? 'var(--accent-color)' : 'var(--accent-dim)'}`,
           borderRadius: '2px',
-          background: dragging ? 'rgba(0, 255, 102, 0.05)' : 'rgba(0,0,0,0.85)',
+          background: dragging ? 'var(--accent-glow)' : 'rgba(0,0,0,0.2)',
+          backdropFilter: 'blur(2px)',
+          WebkitBackdropFilter: 'blur(2px)',
           cursor: isProcessing ? 'not-allowed' : 'pointer',
           padding: '48px 24px',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '18px',
@@ -258,9 +264,9 @@ export default function UploadZone() {
         <motion.div 
           animate={dragging ? { scale: [1, 1.12, 1], rotate: [0, 4, -4, 0] } : {}}
           transition={{ repeat: dragging ? Infinity : 0, duration: 1.2 }}
-          style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(0, 255, 102, 0.05)', border: '1px solid rgba(0, 255, 102, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'var(--accent-glow)', border: '1px solid var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00FF66" strokeWidth="1.5">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="1.5">
             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
           </svg>
         </motion.div>
@@ -272,14 +278,14 @@ export default function UploadZone() {
         </div>
         <input ref={inputRef} type="file" accept={ACCEPT} style={{ display: 'none' }} onChange={onInputChange} disabled={isProcessing} />
         <motion.button 
-          whileHover={isProcessing ? {} : { scale: 1.05, boxShadow: '0 0 15px rgba(0, 255, 102, 0.4)', background: '#00E65C' }}
+          whileHover={isProcessing ? {} : { scale: 1.05, boxShadow: '0 0 15px rgba(242, 101, 34, 0.45)', background: '#FF7733' }}
           whileTap={isProcessing ? {} : { scale: 0.95 }}
           onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }} 
           disabled={isProcessing} 
           style={{ 
             padding: '10px 28px', 
-            background: isProcessing ? '#222222' : '#00FF66', 
-            color: isProcessing ? '#475569' : '#000000', 
+            background: isProcessing ? '#222222' : '#F26522', // ISRO Saffron
+            color: isProcessing ? '#475569' : '#FFFFFF', 
             border: isProcessing ? '1px solid #333333' : 'none', 
             borderRadius: '2px', 
             fontWeight: 700, 

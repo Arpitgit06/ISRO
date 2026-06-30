@@ -33,6 +33,8 @@ checkpoints/
 *.onnx
 *.bin
 *.safetensors
+yolov8x-worldv2.pt
+RealESRGAN_x4plus.pth
 
 # ─── Torch Hub Cache ─────────────────────────────────────────
 .cache/
@@ -75,6 +77,3 @@ outputs/
 *.tmp
 *.bak
 cleanup_duplicates.bat
-.eslintcache
-video photos/
-video_photos/

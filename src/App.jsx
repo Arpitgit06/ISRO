@@ -17,8 +17,8 @@ const GLOBAL_CSS = `
 
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: #000000; }
-  ::-webkit-scrollbar-thumb { background: rgba(0, 255, 102, 0.2); border: 1px solid rgba(0, 255, 102, 0.4); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: #00FF66; }
+  ::-webkit-scrollbar-thumb { background: var(--accent-dim); border: 1px solid var(--accent-color); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
 
   @keyframes pulse {
     0%, 100% { opacity: 0.6; }
