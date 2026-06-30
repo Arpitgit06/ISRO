@@ -149,8 +149,82 @@ function Header({ health, devicesInfo, onDeviceChange, deviceChanging }) {
   );
 }
 
+function BatchSidebar() {
+  const { batchItems, activeBatchId, setActiveBatchId } = useAppStore();
+
+  return (
+    <div style={{
+      width: '200px',
+      flexShrink: 0,
+      borderRight: '1px solid var(--accent-dim)',
+      background: 'rgba(0, 0, 0, 0.4)',
+      display: 'flex',
+      flexDirection: 'column',
+      fontFamily: "'Share Tech Mono', monospace"
+    }}>
+      <div style={{
+        padding: '12px',
+        borderBottom: '1px solid var(--accent-dim)',
+        background: 'rgba(0,0,0,0.2)',
+      }}>
+        <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#94A3B8', letterSpacing: '0.08em' }}>BATCH PAYLOAD</div>
+        <div style={{ fontSize: '9px', color: 'var(--accent-color)', marginTop: '2px' }}>
+          {batchItems.filter(i => i.status === 'success').length} / {batchItems.length} COMPLETED
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        {batchItems.map((item) => {
+          const isActive = item.id === activeBatchId;
+          return (
+            <div
+              key={item.id}
+              onClick={() => item.status === 'success' && setActiveBatchId(item.id)}
+              style={{
+                padding: '8px 10px',
+                background: isActive ? 'var(--accent-glow)' : 'rgba(255, 255, 255, 0.02)',
+                border: `1px solid ${isActive ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.05)'}`,
+                borderRadius: '2px',
+                cursor: item.status === 'success' ? 'pointer' : 'default',
+                opacity: item.status === 'success' ? 1 : 0.6,
+                transition: 'all 0.2s',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                <span style={{ 
+                  fontSize: '11px', 
+                  color: isActive ? '#FFFFFF' : '#E2E8F0', 
+                  overflow: 'hidden', 
+                  textOverflow: 'ellipsis', 
+                  whiteSpace: 'nowrap',
+                  fontWeight: isActive ? 'bold' : 'normal',
+                  flex: 1
+                }}>
+                  {item.filename.toUpperCase()}
+                </span>
+                <span style={{ fontSize: '9px', color: item.status === 'success' ? '#10B981' : item.status === 'error' ? '#EF4444' : 'var(--accent-color)' }}>
+                  {item.status === 'success' && '✓'}
+                  {item.status === 'error' && '⚠'}
+                  {item.status === 'processing' && '⟳'}
+                  {item.status === 'pending' && '•'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#64748B' }}>
+                <span>{item.size} MB</span>
+                {item.status === 'processing' && <span style={{ color: 'var(--accent-color)' }}>{item.progress}%</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
-  const { images, reset } = useAppStore();
+  const { images, reset, isBatchMode, batchItems } = useAppStore();
   const [health, setHealth] = useState(null);
   const [devicesInfo, setDevicesInfo] = useState(null);
   const [deviceChanging, setDeviceChanging] = useState(false);
@@ -496,12 +570,15 @@ export default function Dashboard() {
                 <div style={{ 
                   flex: '0 0 60%', 
                   display: 'flex', 
-                  flexDirection: 'column', 
+                  flexDirection: 'row', 
                   borderRight: '1px solid var(--accent-dim)', 
                   overflow: 'hidden',
                   background: 'transparent'
                 }}>
-                  {hasResults ? <ImageSlider /> : <UploadZone />}
+                  {isBatchMode && batchItems.length > 0 && <BatchSidebar />}
+                  <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+                    {hasResults ? <ImageSlider /> : <UploadZone />}
+                  </div>
                 </div>
 
                 {/* Right Side: Quality metrics charts and telemetry logs */}

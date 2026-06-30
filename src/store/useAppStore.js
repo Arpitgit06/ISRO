@@ -24,6 +24,12 @@ const useAppStore = create((set) => ({
     masks: false,
   },
   hoveredClass: null,
+  
+  // Batch processing state
+  batchItems: [],
+  isBatchMode: false,
+  activeBatchId: null,
+
   setHoveredClass: (c) => set({ hoveredClass: c }),
   setImages: (imgs) => set({ images: imgs }),
   setResults: ({ detections, classCount, metrics, latency, filename }) =>
@@ -34,6 +40,27 @@ const useAppStore = create((set) => ({
   setActiveView: (v) => set({ activeView: v }),
   setSliderPos: (p) => set({ sliderPos: p }),
   toggleOverlay: (key) => set((s) => ({ overlays: { ...s.overlays, [key]: !s.overlays[key] } })),
+  
+  // Batch actions
+  setBatchItems: (items) => set({ batchItems: items }),
+  updateBatchItem: (id, updates) => set((s) => ({
+    batchItems: s.batchItems.map((item) => item.id === id ? { ...item, ...updates } : item)
+  })),
+  setActiveBatchId: (id) => set((s) => {
+    const item = s.batchItems.find((i) => i.id === id);
+    if (!item || item.status !== 'success') return { activeBatchId: id };
+    return {
+      activeBatchId: id,
+      images: item.images,
+      detections: item.detections,
+      classCount: item.classCount,
+      metrics: item.metrics,
+      latency: item.latency,
+      filename: item.filename,
+    };
+  }),
+  setIsBatchMode: (v) => set({ isBatchMode: v }),
+
   reset: () => set({
     images: { raw: null, preprocessed: null, enhanced: null, colorized: null, gradcam: null },
     detections: [],
@@ -45,6 +72,11 @@ const useAppStore = create((set) => ({
     activeView: 'colorized',
     uploadProgress: 0,
     hoveredClass: null,
+    
+    // Reset batch state
+    batchItems: [],
+    isBatchMode: false,
+    activeBatchId: null,
   }),
 }));
 

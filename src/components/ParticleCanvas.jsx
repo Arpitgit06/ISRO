@@ -289,7 +289,8 @@ const EARTH_FS = `
     vec3 normal = vec3(nd.x, nd.y, z);
     
     // Apply 3D rotation: auto-spin + interactive mouse drag
-    float autoRot = u_time * 0.00015;
+    // Full 360° rotation every ~60 seconds at 60fps (2*PI / 3600 frames ≈ 0.001745)
+    float autoRot = u_time * 0.001745;
     vec3 rotNormal = rotateY(normal, autoRot + u_mouseRotX);
     rotNormal = rotateX(rotNormal, u_mouseRotY);
     
@@ -311,42 +312,49 @@ const EARTH_FS = `
     // Sample night lights
     vec4 nightTex = texture2D(u_nightTexture, vec2(u, 1.0 - v));
     
-    // Lighting calculation using the original (unrotated) normal for consistent light
+    // 3D Shading calculations using the original (unrotated) normal for consistent screen-space light
     vec3 lightDir = normalize(u_lightDir);
     float diffuse = dot(normal, lightDir);
-    float dayFactor = clamp((diffuse + 0.12) / 0.28, 0.0, 1.0);
+    float dayShading = clamp((diffuse + 0.15) / 1.15, 0.0, 1.0);
     
-    // Day side: real texture + cloud overlay
+    // Day side color: real texture + cloud overlay
     vec3 dayColor = texColor.rgb;
     if (u_hasRealTexture < 0.5) {
       dayColor *= 1.3; // only boost procedural fallback
     }
     // Blend clouds over land/ocean
-    dayColor = mix(dayColor, vec3(0.95, 0.96, 1.0), cloudAlpha * dayFactor);
+    dayColor = mix(dayColor, vec3(0.95, 0.96, 1.0), cloudAlpha * dayShading);
+    vec3 dayColorShaded = dayColor * dayShading;
     
-    // Night side: city lights glow (warm saffron-orange)
+    // Night side color: city lights glow (warm saffron-orange)
     vec3 rawLights = pow(nightTex.rgb, vec3(1.5)); // gamma correction to soften harsh edges
     vec3 nightLights = rawLights * vec3(1.0, 0.72, 0.35) * 0.9;
     // Mask clouds from city lights (clouds block light from below)
     nightLights *= (1.0 - cloudAlpha * 0.7);
     vec3 nightColor = vec3(0.003, 0.006, 0.015) + nightLights;
     
-    vec3 finalColor = mix(nightColor, dayColor, dayFactor);
+    // Global Day/Night cycle transition
+    // Period = ~80 seconds (u_time * 0.0013)
+    float globalDayWeight = sin(u_time * 0.0013) * 0.5 + 0.5;
+    float transitionWeight = smoothstep(0.2, 0.8, globalDayWeight);
     
-    // Specular highlight on oceans (when real texture)
+    // Mix day and night colors globally
+    vec3 finalColor = mix(nightColor, dayColorShaded, transitionWeight);
+    
+    // Specular highlight on oceans (when real texture and during day phase)
     if (u_hasRealTexture > 0.5) {
       vec3 viewDir = vec3(0.0, 0.0, 1.0);
       vec3 halfVec = normalize(lightDir + viewDir);
       float spec = pow(max(dot(normal, halfVec), 0.0), 64.0);
       // Only apply specular where it's ocean (dark blueish pixels)
       float oceanMask = 1.0 - clamp((texColor.r + texColor.g * 0.5) * 2.5, 0.0, 1.0);
-      finalColor += vec3(0.4, 0.5, 0.6) * spec * oceanMask * dayFactor * 0.6;
+      finalColor += vec3(0.4, 0.5, 0.6) * spec * oceanMask * dayShading * transitionWeight * 0.6;
     }
     
-    // Atmospheric rim glow (blue-cyan, stronger on lit side)
+    // Atmospheric rim glow (blue-cyan, stronger on lit side and during day phase)
     float rim = 1.0 - z;
     rim = pow(rim, 3.2);
-    float litAtmosphere = max(0.0, dot(normal, lightDir));
+    float litAtmosphere = max(0.0, dot(normal, lightDir)) * transitionWeight;
     vec3 rimGlow = vec3(0.15, 0.55, 0.95) * rim * (1.8 + 2.5 * litAtmosphere);
     finalColor += rimGlow * u_globeAlpha;
     
@@ -563,6 +571,8 @@ export default function ParticleCanvas({ scrollProgress }) {
   const isDraggingGlobeRef = useRef(false);
   const lastMouseRef = useRef({ x: 0, y: 0 });
   const hasRealTextureRef = useRef(0);
+  // Globe center/radius cache for hit-testing (updated each frame)
+  const globeScreenRef = useRef({ cx: 0, cy: 0, radius: 0, visible: false });
 
   useEffect(() => {
     scrollRef.current = scrollProgress;
@@ -1043,17 +1053,29 @@ export default function ParticleCanvas({ scrollProgress }) {
       if (!isDraggingGlobeRef.current) {
         rot.x += rot.vx;
         rot.y += rot.vy;
-        // Friction decay
-        rot.vx *= 0.96;
-        rot.vy *= 0.96;
+        // Stronger friction decay to prevent long fast spinning
+        rot.vx *= 0.92;
+        rot.vy *= 0.92;
         // Clamp tiny velocities to zero
-        if (Math.abs(rot.vx) < 0.0001) rot.vx = 0;
-        if (Math.abs(rot.vy) < 0.0001) rot.vy = 0;
+        if (Math.abs(rot.vx) < 0.0002) rot.vx = 0;
+        if (Math.abs(rot.vy) < 0.0002) rot.vy = 0;
       }
       // Clamp vertical rotation to avoid flipping
       rot.y = Math.max(-1.2, Math.min(1.2, rot.y));
 
       if (globeAlpha > 0.01) {
+        // Compute globe screen-space center and radius for mouse hit-testing
+        const globeRadius = 0.55;
+        const globeCenterNDC = [0.0, 0.05]; // NDC center
+        // Convert NDC center to screen pixel coordinates
+        const globeScreenCX = (globeCenterNDC[0] + 1.0) * 0.5 * sw;
+        const globeScreenCY = (1.0 - (globeCenterNDC[1] + 1.0) * 0.5) * sh;
+        // The radius in NDC is in terms of the shorter visual axis
+        // In the shader, d = uv - c where uv.x is scaled by aspect, so the globe
+        // is circular in screen space. The radius in pixels = globeRadius * sh * 0.5
+        const globeScreenR = globeRadius * sh * 0.5;
+        globeScreenRef.current = { cx: globeScreenCX, cy: globeScreenCY, radius: globeScreenR, visible: true };
+
         gl.useProgram(earthProgram);
         gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
         gl.enableVertexAttribArray(locationsEarth.a_quadPos);
@@ -1076,8 +1098,8 @@ export default function ParticleCanvas({ scrollProgress }) {
 
         gl.uniform1f(locationsEarth.u_time, time);
         gl.uniform1f(locationsEarth.u_aspect, sw / sh);
-        gl.uniform1f(locationsEarth.u_radius, 0.55);
-        gl.uniform2f(locationsEarth.u_center, 0.0, 0.05);
+        gl.uniform1f(locationsEarth.u_radius, globeRadius);
+        gl.uniform2f(locationsEarth.u_center, globeCenterNDC[0], globeCenterNDC[1]);
         gl.uniform1f(locationsEarth.u_globeAlpha, globeAlpha);
         gl.uniform3f(locationsEarth.u_lightDir, -1.0, 0.8, 1.2);
         gl.uniform1f(locationsEarth.u_mouseRotX, rot.x);
@@ -1089,6 +1111,8 @@ export default function ParticleCanvas({ scrollProgress }) {
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
         gl.disableVertexAttribArray(locationsEarth.a_quadPos);
+      } else {
+        globeScreenRef.current.visible = false;
       }
 
       // 3. Draw 20,000 particles
@@ -1287,9 +1311,21 @@ export default function ParticleCanvas({ scrollProgress }) {
     render();
 
     // ─── INTERACTIVE GLOBE MOUSE HANDLERS ─────────────────────────
+    // Helper: check if a screen-space point is inside the globe circle
+    const isInsideGlobe = (clientX, clientY) => {
+      const g = globeScreenRef.current;
+      if (!g.visible) return false;
+      const dx = clientX - g.cx;
+      const dy = clientY - g.cy;
+      // Allow a small margin (1.15x radius) for easier grab
+      return (dx * dx + dy * dy) <= (g.radius * 1.15) * (g.radius * 1.15);
+    };
+
     const onMouseDown = (e) => {
       const s = scrollRef.current;
       if (s < 0.85) return; // Only interactive when globe is visible
+      // Hit-test: only start dragging if the click is on the globe
+      if (!isInsideGlobe(e.clientX, e.clientY)) return;
       isDraggingGlobeRef.current = true;
       lastMouseRef.current = { x: e.clientX, y: e.clientY };
       earthRotRef.current.vx = 0;
@@ -1301,13 +1337,14 @@ export default function ParticleCanvas({ scrollProgress }) {
       const dx = e.clientX - lastMouseRef.current.x;
       const dy = e.clientY - lastMouseRef.current.y;
       
-      const sensitivity = 0.005;
+      // Reduced sensitivity to prevent too-fast rotation
+      const sensitivity = 0.003;
       earthRotRef.current.x += dx * sensitivity;
       earthRotRef.current.y -= dy * sensitivity;
       
-      // Track velocity for momentum
-      earthRotRef.current.vx = dx * sensitivity * 0.5;
-      earthRotRef.current.vy = -dy * sensitivity * 0.5;
+      // Track velocity for momentum (reduced multiplier)
+      earthRotRef.current.vx = dx * sensitivity * 0.3;
+      earthRotRef.current.vy = -dy * sensitivity * 0.3;
       
       lastMouseRef.current = { x: e.clientX, y: e.clientY };
     };
@@ -1321,6 +1358,8 @@ export default function ParticleCanvas({ scrollProgress }) {
       if (e.touches.length !== 1) return;
       const s = scrollRef.current;
       if (s < 0.85) return;
+      // Hit-test for touch
+      if (!isInsideGlobe(e.touches[0].clientX, e.touches[0].clientY)) return;
       isDraggingGlobeRef.current = true;
       lastMouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       earthRotRef.current.vx = 0;
@@ -1332,11 +1371,11 @@ export default function ParticleCanvas({ scrollProgress }) {
       const dx = e.touches[0].clientX - lastMouseRef.current.x;
       const dy = e.touches[0].clientY - lastMouseRef.current.y;
       
-      const sensitivity = 0.005;
+      const sensitivity = 0.003;
       earthRotRef.current.x += dx * sensitivity;
       earthRotRef.current.y -= dy * sensitivity;
-      earthRotRef.current.vx = dx * sensitivity * 0.5;
-      earthRotRef.current.vy = -dy * sensitivity * 0.5;
+      earthRotRef.current.vx = dx * sensitivity * 0.3;
+      earthRotRef.current.vy = -dy * sensitivity * 0.3;
       
       lastMouseRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     };
@@ -1346,6 +1385,7 @@ export default function ParticleCanvas({ scrollProgress }) {
     };
 
     // Attach listeners to the document so dragging outside canvas still works
+    // mousedown is on document for hit-testing; mousemove/mouseup continue tracking once dragging starts
     document.addEventListener('mousedown', onMouseDown);
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
